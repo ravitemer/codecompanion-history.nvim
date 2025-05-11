@@ -215,19 +215,23 @@ function History:_get_title(chat, title)
 end
 
 function History:_setup_keymaps()
+    local function form_modes(v)
+        if type(v) == "string" then
+            return {
+                n = v,
+            }
+        end
+        return v
+    end
     require("codecompanion.config").strategies.chat.keymaps["Saved Chats"] = {
-        modes = {
-            n = self.opts.keymap,
-        },
+        modes = form_modes(self.opts.keymap),
         description = "Browse Saved Chats",
         callback = function(_)
             self.ui:open_saved_chats()
         end,
     }
     require("codecompanion.config").strategies.chat.keymaps["Save Current Chat"] = {
-        modes = {
-            n = self.opts.save_chat_keymap,
-        },
+        modes = form_modes(self.opts.save_chat_keymap),
         description = "Save current chat",
         callback = function(chat)
             if not chat then
