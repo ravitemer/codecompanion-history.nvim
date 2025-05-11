@@ -111,6 +111,10 @@ function UI:_set_buf_title(bufnr, title, attempt)
         local success, err = pcall(function()
             local _title = final_title .. (attempt > 0 and " (" .. tostring(attempt) .. ")" or "")
             vim.api.nvim_buf_set_name(bufnr, icon .. _title)
+            utils.fire("TitleSet", {
+                bufnr = bufnr,
+                title = _title,
+            })
         end)
 
         if not success then

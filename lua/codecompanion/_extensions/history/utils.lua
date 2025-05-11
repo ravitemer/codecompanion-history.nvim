@@ -99,4 +99,13 @@ function M.remove_functions(obj)
     end
     return new_obj
 end
+
+---Fire an event
+---@param event string
+---@param opts? table
+function M.fire(event, opts)
+    opts = opts or {}
+    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionHistory" .. event, data = opts })
+end
+
 return M
