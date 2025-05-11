@@ -89,18 +89,18 @@ function SnacksPicker:browse(current_save_id)
         win = {
             input = {
                 keys = {
-                    ["d"] = "delete_chat",
-                    ["r"] = "rename_chat",
-                    ["<M-d>"] = "delete_chat",
-                    ["<M-r>"] = "rename_chat",
+                    [self.keymaps.delete.n] = "delete_chat",
+                    [self.keymaps.delete.i] = "delete_chat",
+                    [self.keymaps.rename.n] = "rename_chat",
+                    [self.keymaps.rename.i] = "rename_chat",
                 },
             },
             list = {
                 keys = {
-                    ["d"] = "delete_chat",
-                    ["r"] = "rename_chat",
-                    ["<M-d>"] = "delete_chat",
-                    ["<M-r>"] = "rename_chat",
+                    [self.keymaps.delete.n] = "delete_chat",
+                    [self.keymaps.delete.i] = "delete_chat",
+                    [self.keymaps.rename.n] = "rename_chat",
+                    [self.keymaps.rename.i] = "rename_chat",
                 },
             },
         },

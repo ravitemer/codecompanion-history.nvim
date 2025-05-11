@@ -15,6 +15,7 @@
 ---@field auto_save? boolean Automatically save the chat whenever it is updated
 ---@field save_chat_keymap? string | table Keymap to save the current chat
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
+---@field picker_keymaps? {rename?: table, delete?: table}
 
 ---@class Chat
 ---@field opts {title:string, save_id: string}

@@ -105,24 +105,24 @@ function TelescopePicker:browse(current_save_id)
                 end)
                 -- Delete chats
                 -- Delete chats (normal mode and <M-d> in insert mode)
-                vim.keymap.set({ "n" }, "d", delete_selections, {
+                vim.keymap.set({ "n" }, self.keymaps.delete.n, delete_selections, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
-                vim.keymap.set({ "i" }, "<M-d>", delete_selections, {
+                vim.keymap.set({ "i" }, self.keymaps.delete.i, delete_selections, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
 
                 -- Rename chat (normal mode and <C-r> in insert mode)
-                vim.keymap.set({ "n" }, "r", rename_selection, {
+                vim.keymap.set({ "n" }, self.keymaps.rename.n, rename_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
-                vim.keymap.set({ "i" }, "<M-r>", rename_selection, {
+                vim.keymap.set({ "i" }, self.keymaps.rename.i, rename_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,

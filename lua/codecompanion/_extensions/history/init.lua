@@ -21,6 +21,16 @@ local default_opts = {
     delete_on_clearing_chat = false,
     ---@type Pickers
     picker = "telescope",
+    picker_keymaps = {
+        rename = {
+            n = "r",
+            i = "<M-r>",
+        },
+        delete = {
+            n = "d",
+            i = "<M-d>",
+        },
+    },
     keymap = "gh",
     ---Enable detailed logging for history extension
     enable_logging = false,

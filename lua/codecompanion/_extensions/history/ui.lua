@@ -7,6 +7,7 @@ local utils = require("codecompanion._extensions.history.utils")
 ---@field title_generator TitleGenerator
 ---@field default_buf_title string
 ---@field picker Pickers
+---@field picker_keymaps table
 local UI = {}
 
 ---@param opts HistoryOpts
@@ -22,6 +23,7 @@ function UI.new(opts, storage, title_generator)
     self.title_generator = title_generator
     self.default_buf_title = opts.default_buf_title
     self.picker = opts.picker
+    self.picker_keymaps = opts.picker_keymaps
 
     log:trace("Initialized UI with picker: %s", opts.picker)
     return self --[[@as UI]]
@@ -242,7 +244,7 @@ function UI:open_saved_chats()
                     vim.notify("Failed to load chat", vim.log.levels.ERROR)
                 end
             end,
-        })
+        }, self.picker_keymaps)
         :browse(last_chat and last_chat.opts.save_id)
 end
 

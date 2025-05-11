@@ -46,10 +46,11 @@ end
 ---@param chats ChatData[]
 ---@param handlers UIHandlers
 ---@return DefaultPicker
-function DefaultPicker:new(chats, handlers)
+function DefaultPicker:new(chats, handlers, keymaps)
     local base = setmetatable({}, self)
     self.chats = chats
     self.handlers = handlers
+    self.keymaps = keymaps
 
     return base
 end
