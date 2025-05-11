@@ -128,10 +128,14 @@ The history browser shows all your saved chats with:
 
 Actions in history browser:
 - `<CR>` - Open selected chat
-- `d` - Delete selected chat in normal mode
-- `r` - Rename selected chat in normal mode
+- Normal mode:
+  - `d` - Delete selected chat(s)
+  - `r` - Rename selected chat
+- Insert mode:
+  - `<M-d>` (Alt+d) - Delete selected chat(s)
+  - `<M-r>` (Alt+r) - Rename selected chat
 
-> Note: Delete and rename actions are only available in telescope and snacks pickers
+> Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple chats can be selected for deletion using picker's multi-select feature (press `<Tab>`).
 
 #### 🔧 API
 
@@ -302,6 +306,7 @@ Special thanks to [Oli Morris](https://github.com/olimorris) for creating the am
 ## 📄 License
 
 MIT
+
 
 
 

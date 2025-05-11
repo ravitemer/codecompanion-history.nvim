@@ -91,12 +91,16 @@ function SnacksPicker:browse(current_save_id)
                 keys = {
                     ["d"] = "delete_chat",
                     ["r"] = "rename_chat",
+                    ["<M-d>"] = "delete_chat",
+                    ["<M-r>"] = "rename_chat",
                 },
             },
             list = {
                 keys = {
                     ["d"] = "delete_chat",
                     ["r"] = "rename_chat",
+                    ["<M-d>"] = "delete_chat",
+                    ["<M-r>"] = "rename_chat",
                 },
             },
         },

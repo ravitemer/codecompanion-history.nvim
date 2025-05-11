@@ -75,25 +75,8 @@ function TelescopePicker:browse(current_save_id)
                     end
                     self.handlers.on_open()
                 end
-
-                -- Multi-select toggle with <Tab>
-                actions.select_default:replace(function()
-                    local selection = action_state.get_selected_entry()
-                    if selection then
-                        actions.close(prompt_bufnr)
-                        self.handlers.on_select(selection.value)
-                    end
-                end)
-
-                -- Delete chats
-                vim.keymap.set({ "n" }, "d", delete_selections, {
-                    buffer = prompt_bufnr,
-                    silent = true,
-                    nowait = true,
-                })
-
-                -- Rename chat
-                vim.keymap.set({ "n" }, "r", function()
+                -- Function to handle renaming
+                local rename_selection = function()
                     local selection = action_state.get_selected_entry()
                     if not selection then
                         return
@@ -110,7 +93,36 @@ function TelescopePicker:browse(current_save_id)
                             self.handlers.on_open()
                         end
                     end)
-                end, {
+                end
+
+                -- Multi-select toggle with <Tab>
+                actions.select_default:replace(function()
+                    local selection = action_state.get_selected_entry()
+                    if selection then
+                        actions.close(prompt_bufnr)
+                        self.handlers.on_select(selection.value)
+                    end
+                end)
+                -- Delete chats
+                -- Delete chats (normal mode and <M-d> in insert mode)
+                vim.keymap.set({ "n" }, "d", delete_selections, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+                vim.keymap.set({ "i" }, "<M-d>", delete_selections, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+
+                -- Rename chat (normal mode and <C-r> in insert mode)
+                vim.keymap.set({ "n" }, "r", rename_selection, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+                vim.keymap.set({ "i" }, "<M-r>", rename_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
