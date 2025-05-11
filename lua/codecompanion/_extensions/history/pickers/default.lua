@@ -16,7 +16,8 @@ function DefaultPicker:format_entry(entry, is_current)
     local parts = {}
 
     -- Current chat indicator
-    table.insert(parts, is_current and "🌟" or "  ")
+    local chevron = ""
+    table.insert(parts, is_current and chevron or " ")
 
     -- Title
     table.insert(parts, entry.title or "Untitled")
@@ -32,10 +33,8 @@ function DefaultPicker:format_entry(entry, is_current)
 
     if entry.token_estimate then
         local tokens = entry.token_estimate
-        if tokens > 1000 then
-            tokens = string.format("%.1fk", tokens / 1000)
-        end
-        table.insert(parts, "(~ " .. tokens .. ")")
+        tokens = string.format("%.1fk", tokens / 1000)
+        table.insert(parts, "(~" .. tokens .. ")")
     end
     -- Relative time
     local icon = " "
