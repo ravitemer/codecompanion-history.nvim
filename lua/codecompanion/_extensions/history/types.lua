@@ -14,6 +14,7 @@
 ---@field enable_logging? boolean Enable logging for history extension
 ---@field auto_save? boolean Automatically save the chat whenever it is updated
 ---@field save_chat_keymap? string Keymap to save the current chat
+---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 
 ---@class Chat
 ---@field opts {title:string, save_id: string}

@@ -30,6 +30,8 @@ local default_opts = {
     auto_save = true,
     ---Keymap to save the current chat
     save_chat_keymap = "sc",
+    ---Number of days after which chats are automatically deleted (0 to disable)
+    expiration_days = 0,
 }
 
 ---@type History|nil

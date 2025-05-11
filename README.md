@@ -22,6 +22,7 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 - 🔄 Continue from where you left
 - 📚 Browse saved chats with preview
 - 🔍 Multiple picker interfaces
+- ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
 
 The following CodeCompanion features are preserved when saving and restoring chats:
@@ -99,6 +100,8 @@ require("codecompanion").setup({
                 auto_save = true,
                 -- Keymap to save the current chat manually
                 save_chat_keymap = "sc",
+                -- Number of days after which chats are automatically deleted (0 to disable)
+                expiration_days = 0,
             }
         }
     }
@@ -296,6 +299,8 @@ Special thanks to [Oli Morris](https://github.com/olimorris) for creating the am
 ## 📄 License
 
 MIT
+
+
 
 
 

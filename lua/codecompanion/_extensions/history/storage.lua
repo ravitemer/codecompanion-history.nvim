@@ -2,6 +2,7 @@
 ---@field base_path string Base directory path
 ---@field index_path string Path to index file
 ---@field chats_dir string Path to chats directory
+---@field expiration_days number Number of days after which chats are deleted
 local Storage = {}
 
 -- File I/O utility functions
@@ -107,11 +108,46 @@ function Storage.new(opts)
     self.base_path = opts.dir_to_save:gsub("/+$", "")
     self.index_path = self.base_path .. "/index.json"
     self.chats_dir = self.base_path .. "/chats"
-    log:trace("Initializing storage with base path: %s", self.base_path)
+    self.expiration_days = opts.expiration_days or 0
+    log:trace("Initializing storage with base path: %s, expiration: %d days", self.base_path, self.expiration_days)
     -- Ensure storage directories exist
     self:_ensure_storage_dirs()
+    -- Clean expired chats on startup
+    self:clean_expired_chats()
 
     return self --[[@as Storage]]
+end
+
+---Clean expired chats based on expiration_days setting
+---@private
+function Storage:clean_expired_chats()
+    -- Skip if expiration is disabled
+    if self.expiration_days <= 0 then
+        log:trace("Chat expiration disabled, skipping cleanup")
+        return
+    end
+
+    log:trace("Checking for expired chats (older than %d days)", self.expiration_days)
+    local index = self:get_chats()
+    local now = os.time()
+    local expired_count = 0
+
+    -- Calculate expiration threshold in seconds
+    local expiration_threshold = now - (self.expiration_days * 24 * 60 * 60)
+
+    -- Check each chat
+    for id, chat_meta in pairs(index) do
+        if chat_meta.updated_at and chat_meta.updated_at < expiration_threshold then
+            log:trace("Deleting expired chat: %s (last updated: %s)", id, os.date("%Y-%m-%d", chat_meta.updated_at))
+            if self:delete_chat(id) then
+                expired_count = expired_count + 1
+            end
+        end
+    end
+
+    if expired_count > 0 then
+        log:debug("Cleaned up %d expired chats", expired_count)
+    end
 end
 
 ---Get the base path of the storage
@@ -197,6 +233,7 @@ function Storage:get_chats()
             return {}
         end
     end
+
     return result.data or {}
 end
 
