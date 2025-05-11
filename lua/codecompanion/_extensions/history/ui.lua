@@ -368,8 +368,18 @@ function UI:_get_preview_lines(chat_data)
 
     if chat_data.settings then
         lines = { "---" }
-        for key, value in pairs(chat_data.settings) do
-            table.insert(lines, string.format("%s: %s", key, vim.inspect(value)))
+        table.insert(lines, string.format("adapter: %s", vim.inspect(chat_data.adapter)))
+        table.insert(lines, string.format("model: %s", vim.inspect(chat_data.settings.model)))
+        -- Sort keys alphabetically
+        local sorted_keys = {}
+        for key in pairs(chat_data.settings) do
+            table.insert(sorted_keys, key)
+        end
+        table.sort(sorted_keys)
+        for _, key in ipairs(sorted_keys) do
+            if key ~= "model" then
+                table.insert(lines, string.format("%s: %s", key, vim.inspect(chat_data.settings[key])))
+            end
         end
         table.insert(lines, "---")
         spacer()
