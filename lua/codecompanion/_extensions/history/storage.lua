@@ -206,11 +206,23 @@ function Storage:_update_index_entry(chat_data)
     -- Ensure we have a table to work with
     local index = index_result.data or {}
 
-    -- Update index with minimal metadata
+    -- Calculate message count and token estimate
+    local message_count = #(chat_data.messages or {})
+    local total_chars = 0
+    for _, msg in ipairs(chat_data.messages or {}) do
+        total_chars = total_chars + #(msg.content or "")
+    end
+    local token_estimate = math.floor(total_chars / 4)
+
+    -- Update index with enhanced metadata
     index[chat_data.save_id] = {
         save_id = chat_data.save_id,
         title = chat_data.title,
         updated_at = chat_data.updated_at,
+        model = chat_data.settings and chat_data.settings.model or "unknown",
+        adapter = chat_data.adapter or "unknown",
+        message_count = message_count,
+        token_estimate = token_estimate,
     }
 
     -- Write updated index

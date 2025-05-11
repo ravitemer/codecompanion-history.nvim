@@ -14,9 +14,7 @@ function SnacksPicker:browse(current_save_id)
         items = self.chats,
         main = { file = false, float = true },
         format = function(item)
-            local is_current = current_save_id and current_save_id == item.save_id
-            local relative_time = utils.format_relative_time(item.updated_at)
-            return { { string.format("%s %s (%s)", is_current and "🌟" or " ", item.name, relative_time) } }
+            return { { self:format_entry(item, (current_save_id and current_save_id) == item.save_id) } }
         end,
         transform = function(item)
             item.file = item.save_id

@@ -54,6 +54,10 @@
 ---@field title string
 ---@field updated_at number
 ---@field save_id string
+---@field model string
+---@field adapter string
+---@field message_count number
+---@field token_estimate number
 
 ---@class UIHandlers
 ---@field on_preview fun(chat_data: ChatData): string[]

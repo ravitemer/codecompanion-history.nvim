@@ -20,13 +20,13 @@ function M.format_relative_time(timestamp)
     local diff = now - timestamp
 
     if diff < 60 then
-        return diff .. "s ago"
+        return diff .. "s"
     elseif diff < 3600 then
-        return math.floor(diff / 60) .. "m ago"
+        return math.floor(diff / 60) .. "m"
     elseif diff < 86400 then
-        return math.floor(diff / 3600) .. "h ago"
+        return math.floor(diff / 3600) .. "h"
     else
-        return math.floor(diff / 86400) .. "d ago"
+        return math.floor(diff / 86400) .. "d"
     end
 end
 
