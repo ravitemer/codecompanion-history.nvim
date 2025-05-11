@@ -202,6 +202,12 @@ function UI:open_saved_chats()
                 self.storage:delete_chat(chat_data.save_id)
             end,
             ---@param chat_data ChatData
+            ---@param new_title string
+            on_rename = function(chat_data, new_title)
+                log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
+                self.storage:rename_chat(chat_data.save_id, new_title)
+            end,
+            ---@param chat_data ChatData
             on_select = function(chat_data)
                 log:trace("Selected chat: %s", chat_data.save_id)
                 local chat_module = require("codecompanion.strategies.chat")

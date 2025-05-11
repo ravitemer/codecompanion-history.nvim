@@ -128,7 +128,10 @@ The history browser shows all your saved chats with:
 
 Actions in history browser:
 - `<CR>` - Open selected chat
-- `d` - Delete selected chat in normal mode (Doesn't apply to default vim.ui.select)
+- `d` - Delete selected chat in normal mode
+- `r` - Rename selected chat in normal mode
+
+> Note: Delete and rename actions are only available in telescope and snacks pickers
 
 #### 🔧 API
 
@@ -299,6 +302,7 @@ Special thanks to [Oli Morris](https://github.com/olimorris) for creating the am
 ## 📄 License
 
 MIT
+
 
 
 

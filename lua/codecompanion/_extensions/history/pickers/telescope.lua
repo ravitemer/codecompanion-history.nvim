@@ -87,7 +87,32 @@ function TelescopePicker:browse(current_save_id)
                     end
                 end)
 
+                -- Delete chats
                 vim.keymap.set({ "n" }, "d", delete_selections, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+
+                -- Rename chat
+                vim.keymap.set({ "n" }, "r", function()
+                    local selection = action_state.get_selected_entry()
+                    if not selection then
+                        return
+                    end
+                    actions.close(prompt_bufnr)
+
+                    -- Prompt for new title
+                    vim.ui.input({
+                        prompt = "New title: ",
+                        default = selection.value.title or "",
+                    }, function(new_title)
+                        if new_title and vim.trim(new_title) ~= "" then
+                            self.handlers.on_rename(selection.value, new_title)
+                            self.handlers.on_open()
+                        end
+                    end)
+                end, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,

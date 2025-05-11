@@ -44,6 +44,25 @@ function SnacksPicker:browse(current_save_id)
             picker:close()
         end,
         actions = {
+            rename_chat = function(picker)
+                local selections = picker:selected({ fallback = true })
+                if #selections ~= 1 then
+                    return vim.notify("Can rename only one chat at a time", vim.log.levels.WARN)
+                end
+                local selection = selections[1]
+                picker:close()
+
+                -- Prompt for new title
+                vim.ui.input({
+                    prompt = "New title: ",
+                    default = selection.title or "",
+                }, function(new_title)
+                    if new_title and vim.trim(new_title) ~= "" then
+                        self.handlers.on_rename(selection, new_title)
+                        self.handlers.on_open()
+                    end
+                end)
+            end,
             delete_chat = function(picker)
                 local selections = picker:selected({ fallback = true })
                 if #selections == 0 then
@@ -73,11 +92,13 @@ function SnacksPicker:browse(current_save_id)
             input = {
                 keys = {
                     ["d"] = "delete_chat",
+                    ["r"] = "rename_chat",
                 },
             },
             list = {
                 keys = {
                     ["d"] = "delete_chat",
+                    ["r"] = "rename_chat",
                 },
             },
         },

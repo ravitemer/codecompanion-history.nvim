@@ -60,6 +60,7 @@
 ---@field on_delete fun(chat_data: ChatData):nil
 ---@field on_select fun(chat_data: ChatData):nil
 ---@field on_open fun():nil
+---@field on_rename fun(chat_data: ChatData, new_title:string): nil
 
 ---@class BufferInfo
 ---@field bufnr number

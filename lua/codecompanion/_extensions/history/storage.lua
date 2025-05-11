@@ -99,7 +99,6 @@ function FileUtils.delete_file(file_path)
     return { ok = true, error = nil }
 end
 
----@return Storage
 function Storage.new(opts)
     local self = setmetatable({}, {
         __index = Storage,
@@ -408,6 +407,44 @@ function Storage:get_last_chat()
     end
 
     return nil
+end
+
+---Rename a chat in storage
+---@param save_id string The chat ID to rename
+---@param new_title string The new title for the chat
+---@return boolean success
+function Storage:rename_chat(save_id, new_title)
+    log:trace("Renaming chat %s to: %s", save_id, new_title)
+    local index = self:get_chats()
+    if not index[save_id] then
+        log:error("Chat %s not found in index", save_id)
+        return false
+    end
+
+    -- Update index
+    index[save_id].title = new_title
+    index[save_id].updated_at = os.time()
+    local result = FileUtils.write_json(self.index_path, index)
+    if not result.ok then
+        log:error("Failed to update index with new title: %s", result.error)
+        return false
+    end
+
+    -- Update chat data
+    local chat_path = self.chats_dir .. "/" .. save_id .. ".json"
+    local chat_result = FileUtils.read_json(chat_path)
+    if chat_result.ok then
+        chat_result.data.title = new_title
+        chat_result.data.updated_at = os.time()
+        result = FileUtils.write_json(chat_path, chat_result.data)
+        if not result.ok then
+            log:error("Failed to update chat file with new title: %s", result.error)
+            return false
+        end
+    end
+
+    log:debug("Successfully renamed chat %s to: %s", save_id, new_title)
+    return true
 end
 
 return Storage
