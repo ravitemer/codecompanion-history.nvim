@@ -212,6 +212,20 @@ function UI:open_saved_chats()
             on_rename = function(chat_data, new_title)
                 log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
                 self.storage:rename_chat(chat_data.save_id, new_title)
+                local found_bufnr = nil
+                for _, bufnr in ipairs(_G.codecompanion_buffers) do
+                    local chat = codecompanion.buf_get_chat(bufnr)
+                    if chat and chat.opts.save_id == chat_data.save_id then
+                        found_bufnr = bufnr
+                        chat.opts.title = new_title
+                        self:_set_buf_title(bufnr, new_title)
+                        break
+                    end
+                end
+                utils.fire("TitleRenamed", {
+                    bufnr = found_bufnr,
+                    title = new_title,
+                })
             end,
             ---@param chat_data ChatData
             on_select = function(chat_data)

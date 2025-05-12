@@ -11,6 +11,7 @@
     "vim",
     "lvim",
     "reload",
-    "MiniTest"
+    "MiniTest",
+    "codecompanion_buffers"
   ],
 }
