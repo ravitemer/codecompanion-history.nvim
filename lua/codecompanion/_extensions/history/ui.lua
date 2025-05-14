@@ -134,7 +134,7 @@ function UI:_set_buf_title(bufnr, title, attempt)
 end
 
 ---Format chat data for display
----@param chats table<string, ChatData>
+---@param chats table<string, ChatIndexData>
 ---@return ChatData[]
 local function format_chat_items(chats)
     local items = {}
@@ -144,7 +144,6 @@ local function format_chat_items(chats)
             items,
             vim.tbl_extend("keep", {
                 save_id = save_id,
-                messages = chat_item.messages,
                 name = chat_item.title or save_id,
                 title = chat_item.title or save_id,
                 updated_at = chat_item.updated_at or 0,
@@ -178,7 +177,14 @@ function UI:open_saved_chats()
         log:trace("Requested picker '%s' not available, falling back to default", self.picker)
         resolved_picker = require("codecompanion._extensions.history.pickers.default")
     elseif self.picker ~= "default" then
-        require(self.picker)
+        local available, _ = pcall(require, self.picker)
+        if not available then
+            vim.notify(
+                string.format("'%s' module not available. Using default picker", self.picker),
+                vim.log.levels.WARN
+            )
+            resolved_picker = require("codecompanion._extensions.history.pickers.default")
+        end
     end
     ---@diagnostic disable-next-line: different-requires
     local codecompanion = require("codecompanion")
@@ -213,7 +219,7 @@ function UI:open_saved_chats()
                 log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
                 self.storage:rename_chat(chat_data.save_id, new_title)
                 local found_bufnr = nil
-                for _, bufnr in ipairs(_G.codecompanion_buffers) do
+                for _, bufnr in ipairs(_G.codecompanion_buffers or {}) do
                     local chat = codecompanion.buf_get_chat(bufnr)
                     if chat and chat.opts.save_id == chat_data.save_id then
                         found_bufnr = bufnr
