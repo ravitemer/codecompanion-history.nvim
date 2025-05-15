@@ -293,7 +293,7 @@ The extension integrates with CodeCompanion through a robust event-driven archit
 
 ## 📝 TODOs
 
-- [ ] Add support for additional pickers like snacks, fzf etc
+- [x] Add support for additional pickers like snacks, fzf etc
 
 ## 🔌 Related Extensions
 
@@ -307,17 +307,4 @@ Special thanks to [Oli Morris](https://github.com/olimorris) for creating the am
 ## 📄 License
 
 MIT
-
-
-
-
-
-
-
-
-
-
-
-
-
 

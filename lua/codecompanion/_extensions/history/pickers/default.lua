@@ -1,6 +1,6 @@
 local utils = require("codecompanion._extensions.history.utils")
 
----@alias Pickers "telescope" | "snacks" | "default"
+---@alias Pickers "telescope" | "snacks" | "fzf-lua" |  "default"
 
 ---@class DefaultPicker
 ---@field chats ChatData[]
