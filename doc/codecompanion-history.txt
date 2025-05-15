@@ -1,4 +1,4 @@
-*codecompanion-history.txt*      For NVIM v0.8.0      Last change: 2025 May 07
+*codecompanion-history.txt*      For NVIM v0.8.0      Last change: 2025 May 15
 
 ==============================================================================
 Table of Contents                    *codecompanion-history-table-of-contents*
@@ -7,7 +7,7 @@ Table of Contents                    *codecompanion-history-table-of-contents*
   - ✨ Features|codecompanion-history-codecompanion-history-extension-✨-features|
   - 📋 Requirements|codecompanion-history-codecompanion-history-extension-📋-requirements|
   - 📦 Installation|codecompanion-history-codecompanion-history-extension-📦-installation|
-  - 🛠️ Usage|codecompanion-history-codecompanion-history-extension-���-️-usage|
+  - 🛠️ Usage|codecompanion-history-codecompanion-history-extension-🛠️-usage|
   - ⚙️ How It Works|codecompanion-history-codecompanion-history-extension-⚙️-how-it-works|
   - 📝 TODOs|codecompanion-history-codecompanion-history-extension-📝-todos|
   - 🔌 Related Extensions|codecompanion-history-codecompanion-history-extension-🔌-related-extensions|
@@ -27,13 +27,16 @@ A history management extension for codecompanion.nvim
 restoring chat sessions.
 
 
-� FEATURES*codecompanion-history-codecompanion-history-extension-✨-features*
+✨ FEATURES*codecompanion-history-codecompanion-history-extension-✨-features*
 
-- 💾 Automatic chat session saving with context preservation
+- 💾 Flexible chat saving:
+    - Automatic session saving (can be disabled)
+    - Manual save with dedicated keymap
 - 🎯 Smart title generation for chats
 - 🔄 Continue from where you left
 - 📚 Browse saved chats with preview
 - 🔍 Multiple picker interfaces
+- ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
 
 The following CodeCompanion features are preserved when saving and restoring
@@ -89,15 +92,16 @@ restored 4. Previous system prompts are preserved
   issue <https://github.com/ravitemer/codecompanion-history.nvim/issues> to help
   us maintain compatibility.
 
-П�� REQUIREMENTS*codecompanion-history-codecompanion-history-extension-📋-requirements*
+📋 REQUIREMENTS*codecompanion-history-codecompanion-history-extension-📋-requirements*
 
 - Neovim >= 0.8.0
 - codecompanion.nvim <https://codecompanion.olimorris.dev/>
 - snacks.nvim <https://github.com/folke/snacks.nvim> (optional, for enhanced picker)
 - telescope.nvim <https://github.com/nvim-telescope/telescope.nvim> (optional, for enhanced picker)
+- fzf-lua <https://github.com/ibhagwan/fzf-lua> (optional, for enhanced picker)
 
 
-П�� INSTALLATION*codecompanion-history-codecompanion-history-extension-📦-installation*
+📦 INSTALLATION*codecompanion-history-codecompanion-history-extension-📦-installation*
 
 Using lazy.nvim <https://github.com/folke/lazy.nvim>:
 
@@ -125,18 +129,24 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
                 opts = {
                     -- Keymap to open history from chat buffer (default: gh)
                     keymap = "gh",
+                    -- Keymap to save the current chat manually (when auto_save is disabled)
+                    save_chat_keymap = "sc",
+                    -- Save all chats by default (disable to save only manually using 'sc')
+                    auto_save = true,
+                    -- Number of days after which chats are automatically deleted (0 to disable)
+                    expiration_days = 0,
+                    -- Picker interface ("telescope" or "snacks" or "fzf-lua" or "default")
+                    picker = "telescope",
                     -- Automatically generate titles for new chats
                     auto_generate_title = true,
                     ---On exiting and entering neovim, loads the last chat on opening chat
                     continue_last_chat = false,
                     ---When chat is cleared with `gx` delete the chat from history
                     delete_on_clearing_chat = false,
-                    -- Picker interface ("telescope", "snacks" or "default")
-                    picker = "telescope",
-                    ---Enable detailed logging for history extension
-                    enable_logging = false,
                     ---Directory path to save the chats
                     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
+                    ---Enable detailed logging for history extension
+                    enable_logging = false,
                 }
             }
         }
@@ -144,29 +154,35 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
 <
 
 
-П��ϸ� USAGE*codecompanion-history-codecompanion-history-extension-���-️-usage*
+🛠️ USAGE*codecompanion-history-codecompanion-history-extension-🛠️-usage*
 
 
-П�� COMMANDS
+🎯 COMMANDS
 
 - `:CodeCompanionHistory` - Open the history browser
 
 
-�ϸ� CHAT BUFFER KEYMAPS
+⌨️ CHAT BUFFER KEYMAPS
 
 - `gh` - Open history browser (customizable via `opts.keymap`)
+- `sc` - Save current chat manually (customizable via `opts.save_chat_keymap`)
 
 
-П�� HISTORY BROWSER
+📚 HISTORY BROWSER
 
 The history browser shows all your saved chats with: - Title (auto-generated or
 custom) - Last updated time - Preview of chat contents
 
-Actions in history browser: - `<CR>` - Open selected chat - `d` - Delete
-selected chat in normal mode (Doesn’t apply to default vim.ui.select)
+Actions in history browser: - `<CR>` - Open selected chat - Normal mode: - `d`
+- Delete selected chat(s) - `r` - Rename selected chat - Insert mode: - `<M-d>`
+(Alt+d) - Delete selected chat(s) - `<M-r>` (Alt+r) - Rename selected chat
 
 
-П�� API
+  Note: Delete and rename actions are only available in telescope and snacks
+  pickers. Multiple chats can be selected for deletion using picker’s
+  multi-select feature (press `<Tab>`).
+
+🔧 API
 
 The history extension exports the following functions that can be accessed via
 `require("codecompanion").extensions.history`:
@@ -204,7 +220,7 @@ Example usage:
 <
 
 
-�ϸ� HOW IT WORKS*codecompanion-history-codecompanion-history-extension-⚙️-how-it-works*
+⚙️ HOW IT WORKS*codecompanion-history-codecompanion-history-extension-⚙️-how-it-works*
 
 >mermaid
     graph TD
@@ -225,7 +241,10 @@ Example usage:
             F --> G[Prepare Auto-Title];
     
             C -- Extension Hooks --> H[Subscriber Triggered];
-            H --> I[Auto-Save Chat State - Messages, Tools, Refs];
+            H --> H1{Auto-Save Enabled?};
+            H1 -- Yes --> I[Save Chat State - Messages, Tools, Refs];
+            H1 -- No --> H2[Manual Save via `sc`];
+            H2 --> I;
             I --> J{No Title & Auto-Title Enabled?};
             J -- Yes --> K[Generate Title];
             K --> L[Update Buffer Title];
@@ -252,8 +271,10 @@ Here’s what’s happening in simple terms:
 - A title generator that will name your chat based on the conversation
 
 
-2. As you chat:- When you submit a message, we listen to `CodeCompanionChatSubmitted` event and save state
-- Every time you get a response, our extension automatically saves everything
+2. As you chat:- When auto-save is enabled (default):
+    - Each submitted message triggers automatic saving
+    - Every LLM response automatically saves the chat state
+- Manual saving is available via the `sc` keymap
 - If your chat doesn’t have a title yet, it tries to create one that makes sense
 - All your messages, tools, and references are safely stored
 
@@ -316,25 +337,25 @@ architecture:
 
 
 
-П�� TODOS  *codecompanion-history-codecompanion-history-extension-📝-todos*
+📝 TODOS  *codecompanion-history-codecompanion-history-extension-📝-todos*
 
 - ☐ Add support for additional pickers like snacks, fzf etc
 
 
-П�� RELATED EXTENSIONS*codecompanion-history-codecompanion-history-extension-🔌-related-extensions*
+🔌 RELATED EXTENSIONS*codecompanion-history-codecompanion-history-extension-🔌-related-extensions*
 
 - MCP Hub <https://codecompanion.olimorris.dev/extensions/mcphub.html> extension
 - VectorCode <https://codecompanion.olimorris.dev/extensions/vectorcode.html> extension
 
 
-П�� ACKNOWLEDGEMENTS*codecompanion-history-codecompanion-history-extension-🙏-acknowledgements*
+🙏 ACKNOWLEDGEMENTS*codecompanion-history-codecompanion-history-extension-🙏-acknowledgements*
 
 Special thanks to Oli Morris <https://github.com/olimorris> for creating the
 amazing CodeCompanion.nvim <https://codecompanion.olimorris.dev> plugin - a
 highly configurable and powerful coding assistant for Neovim.
 
 
-П�� LICENSE*codecompanion-history-codecompanion-history-extension-📄-license*
+📄 LICENSE*codecompanion-history-codecompanion-history-extension-📄-license*
 
 MIT
 
