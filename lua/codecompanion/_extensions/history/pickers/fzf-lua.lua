@@ -36,7 +36,6 @@ function FzfluaPicker:browse(current_save_id)
         vim.iter(self.chats):map(format):each(fzf_cb)
         fzf_cb(nil)
     end, {
-        profile = "hide",
         fzf_opts = { ["--with-nth"] = "2..", ["--delimiter"] = string.format("[%s]", nbsp) },
         winopts = { title = "Saved Chats" },
         actions = {
