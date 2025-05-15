@@ -83,7 +83,7 @@ function FzfluaPicker:browse(current_save_id)
                 end
                 -- Delete all selected items
                 for _, selection in ipairs(selections) do
-                    self.handlers.on_delete(decode(selection).value)
+                    self.handlers.on_delete(decode(selection))
                 end
                 self.handlers.on_open()
             end,
