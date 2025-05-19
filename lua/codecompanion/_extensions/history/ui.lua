@@ -270,7 +270,7 @@ end
 
 ---Creates a new chat from the given chat data restoring what it can
 ---@param chat_data? ChatData
----@return Chat?
+---@return CodeCompanion.Chat | nil
 function UI:create_chat(chat_data)
     log:trace("Creating new chat from saved data")
     chat_data = chat_data or {}
@@ -327,35 +327,35 @@ function UI:create_chat(chat_data)
             local saved_model = settings.model
             if saved_model then
                 local available_models = resolved_adapter.schema.model.choices
-                if type(available_models) == "function" then
-                    vim.notify("Please wait while we fetch the avaiable models in " .. adapter)
-                    available_models = available_models(resolved_adapter)
-                end
-                if not available_models then
-                    return
-                end
-                available_models = vim.iter(available_models)
-                    :map(function(model, value)
-                        if type(model) == "string" then
-                            return model
-                        else
-                            return value -- This is for the table entry case
-                        end
-                    end)
-                    :totable()
-                local has_model = vim.tbl_contains(available_models, saved_model)
-                if not has_model then
-                    vim.notify(
-                        string.format(
-                            "Model '%s' is not available in '%s' adapter, select another model.",
-                            saved_model,
-                            adapter
+                --INFO:Skipping if models is a function
+                -- if type(available_models) == "function" then
+                --     vim.notify("Please wait while we fetch the avaiable models in " .. adapter)
+                --     available_models = available_models(resolved_adapter)
+                -- end
+                if type(available_models) == "table" then
+                    available_models = vim.iter(available_models)
+                        :map(function(model, value)
+                            if type(model) == "string" then
+                                return model
+                            else
+                                return value -- This is for the table entry case
+                            end
+                        end)
+                        :totable()
+                    local has_model = vim.tbl_contains(available_models, saved_model)
+                    if not has_model then
+                        vim.notify(
+                            string.format(
+                                "Model '%s' is not available in '%s' adapter, select another model.",
+                                saved_model,
+                                adapter
+                            )
                         )
-                    )
-                    return self:_change_model(available_models, function(model)
-                        settings.model = model
-                        create_chat(adapter, settings)
-                    end)
+                        return self:_change_model(available_models, function(model)
+                            settings.model = model
+                            create_chat(adapter, settings)
+                        end)
+                    end
                 end
             end
         end
