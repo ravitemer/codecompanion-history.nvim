@@ -268,9 +268,9 @@ function UI:open_saved_chats()
         :browse(last_chat and last_chat.opts.save_id)
 end
 
----Creates a new chat from the given chat data restoring what it can
+---Creates a new chat from the given chat data restoring what it can along with the adapter, settings. If adapter is not found, ask user to select another adapter. If adapter is found but model is not available, uses the adapter's default model.
 ---@param chat_data? ChatData
----@return Chat
+---@return CodeCompanion.Chat | nil
 function UI:create_chat(chat_data)
     log:trace("Creating new chat from saved data")
     chat_data = chat_data or {}
@@ -292,24 +292,79 @@ function UI:create_chat(chat_data)
     local context_utils = require("codecompanion.utils.context")
     local last_active_buffer = require("codecompanion._extensions.history.utils").get_editor_info().last_active
     local context = context_utils.get(last_active_buffer and last_active_buffer.bufnr or nil)
-    local chat = require("codecompanion.strategies.chat").new({
-        save_id = save_id,
-        messages = messages,
-        context = context,
-        settings = chat_data.settings,
-        adapter = chat_data.adapter,
-        title = title,
-        --INFO: No need to ignore system prompt here, thanks to oli we don't add system messages with same tag (`from_config`) twice.
-        -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
-        -- ignore_system_prompt = true,
-    })
-    chat.refs = chat_data.refs or {}
-    chat.references:render()
-    chat.tools.schemas = chat_data.schemas or {}
-    chat.tools.in_use = chat_data.in_use or {}
-    chat.cycle = chat_data.cycle or 1
-    log:trace("Successfully created chat with save_id: %s", save_id or "N/A")
-    return chat
+    ---@param adapter string
+    ---@param settings table?
+    local function _create_chat(adapter, settings)
+        local chat = require("codecompanion.strategies.chat").new({
+            save_id = save_id,
+            messages = messages,
+            context = context,
+            settings = settings,
+            adapter = adapter,
+            title = title,
+            --INFO: No need to ignore system prompt here, thanks to oli we don't add system messages with same tag (`from_config`) twice.
+            -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
+            -- ignore_system_prompt = true,
+        })
+        chat.refs = chat_data.refs or {}
+        chat.references:render()
+        chat.tools.schemas = chat_data.schemas or {}
+        chat.tools.in_use = chat_data.in_use or {}
+        chat.cycle = chat_data.cycle or 1
+        log:trace("Successfully created chat with save_id: %s", save_id or "N/A")
+        return chat
+    end
+    local adapter = chat_data.adapter
+    local settings = chat_data.settings or {}
+    if adapter then
+        local found, resolved_adapter = pcall(require("codecompanion.adapters").resolve, adapter)
+        -- If the adapter is not found, we need to change it. If found, we need to check if the model is available
+        if not found then
+            vim.notify(
+                string.format("Adapter '%s' not available, please select another adapter", adapter),
+                vim.log.levels.WARN
+            )
+            return self:_change_adapter(_create_chat)
+        else
+            local saved_model = settings.model
+            if saved_model then
+                local available_models = resolved_adapter.schema.model.choices
+                --INFO:Skipping if models is a function
+                -- if type(available_models) == "function" then
+                --     vim.notify("Please wait while we fetch the avaiable models in " .. adapter)
+                --     available_models = available_models(resolved_adapter)
+                -- end
+                if type(available_models) == "table" then
+                    available_models = vim.iter(available_models)
+                        :map(function(model, value)
+                            if type(model) == "string" then
+                                return model
+                            else
+                                return value -- This is for the table entry case
+                            end
+                        end)
+                        :totable()
+                    local has_model = vim.tbl_contains(available_models, saved_model)
+                    if not has_model then
+                        vim.notify(
+                            string.format(
+                                "Model '%s' is not available in '%s' adapter, using default model.",
+                                saved_model,
+                                adapter
+                            )
+                        )
+                        return _create_chat(adapter, nil)
+                        --INFO: this results in rare errors where the model opts differ from one model to another model.
+                        -- return self:_change_model(available_models, function(model)
+                        --     settings.model = model
+                        --     create_chat(adapter, nil)
+                        -- end)
+                    end
+                end
+            end
+        end
+    end
+    return _create_chat(adapter, settings)
 end
 
 ---[[Most of the code is copied from codecompanion/strategies/chat/ui.lua]]
@@ -433,6 +488,58 @@ function UI:update_last_saved(chat, saved_at)
     --saved at icon
     local icon = " "
     self:_set_buf_title(chat.bufnr, { chat.opts.title or self.default_buf_title, icon .. utils.format_time(saved_at) })
+end
+
+local function select_opts(prompt, conditional)
+    return {
+        prompt = prompt,
+        kind = "codecompanion.nvim",
+        format_item = function(item)
+            if conditional == item then
+                return "* " .. item
+            end
+            return "  " .. item
+        end,
+    }
+end
+
+---@param on_select fun(adapter: string, settings: table?):nil
+function UI:_change_adapter(on_select)
+    local adapters = vim.deepcopy(config.adapters)
+
+    local adapters_list = vim.iter(adapters)
+        :filter(function(adapter)
+            return adapter ~= "opts" and adapter ~= "non_llms"
+        end)
+        :map(function(adapter, _)
+            return adapter
+        end)
+        :totable()
+    table.sort(adapters_list)
+    -- table.insert(adapters_list, 1, current_adapter)
+    vim.ui.select(adapters_list, select_opts("Select Adapter"), function(selected)
+        if not selected then
+            return
+        end
+        local found, adapter = pcall(require("codecompanion.adapters").resolve, selected)
+        if found and adapter then
+            --set chat settings to nil, so that old adapter's settings are not used
+            on_select(selected, nil)
+        end
+    end)
+end
+
+---@param available_models string[]
+---@param on_select fun(model: string):nil
+function UI:_change_model(available_models, on_select)
+    local models = vim.deepcopy(available_models)
+    table.sort(models)
+    vim.ui.select(models, select_opts("Select Model"), function(selected)
+        if not selected then
+            return
+        end
+        on_select(selected)
+    end)
 end
 
 return UI
