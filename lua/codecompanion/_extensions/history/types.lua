@@ -4,9 +4,14 @@
 ---@field setup fun(opts: table): any Function called when extension is loaded
 ---@field exports? table Optional table of functions exposed via codecompanion.extensions.name
 
+---@class GenOpts
+---@field adapter? string? The adapter to use for generation
+---@field model? string? The model of the adapter to use for generation
+
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat
----@field auto_generate_title? boolean Generate title for the chat
+---@field auto_generate_title? boolean  Generate title for the chat
+---@field title_generation_opts? GenOpts Options for title generation
 ---@field continue_last_chat? boolean On exiting and entering neovim, loads the last chat on opening chat
 ---@field delete_on_clearing_chat? boolean When chat is cleared with `gx` delete the chat from history
 ---@field keymap? string | table Keymap to open saved chats from the chat buffer

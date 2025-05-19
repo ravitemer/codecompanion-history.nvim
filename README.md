@@ -93,8 +93,14 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface ("telescope" or "snacks" or "fzf-lua" or "default")
                 picker = "telescope",
-                -- Automatically generate titles for new chats
+                ---Automatically generate titles for new chats
                 auto_generate_title = true,
+                title_generation_opts = {
+                    ---Adapter for generating titles (defaults to current chat adapter) 
+                    adapter = nil, -- "copilot"
+                    ---Model for generating titles (defaults to current chat model)
+                    model = nil, -- "gpt-4o"
+                },
                 ---On exiting and entering neovim, loads the last chat on opening chat
                 continue_last_chat = false,
                 ---When chat is cleared with `gx` delete the chat from history

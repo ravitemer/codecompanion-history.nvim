@@ -1,6 +1,7 @@
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion._extensions.history.log")
+local schema = require("codecompanion.schema")
 
 local CONSTANTS = {
     STATUS_ERROR = "error",
@@ -90,22 +91,31 @@ end
 ---@param callback fun(title: string|nil)
 function TitleGenerator:_make_adapter_request(chat, prompt, callback)
     log:trace("Making adapter request for title generation")
-    local settings = chat.adapter:map_schema_to_params(chat.settings)
+    local opts = self.opts.title_generation_opts or {}
+    local adapter = chat.adapter
+    local settings = chat.settings
+    if opts.adapter then
+        adapter = require("codecompanion.adapters").resolve(opts.adapter)
+    end
+    if opts.model then
+        settings = schema.get_default(adapter, { model = opts.model })
+    end
+    settings = adapter:map_schema_to_params(settings)
     settings.opts.stream = false
     local payload = {
-        messages = chat.adapter:map_roles({
+        messages = adapter:map_roles({
             { role = "user", content = prompt },
         }),
     }
     client.new({ adapter = settings }):request(payload, {
-        callback = function(err, data, adapter)
+        callback = function(err, data, _adapter)
             if err and err.stderr ~= "{}" then
                 log:error("Title generation error: %s", err.stderr)
                 vim.notify("Error while generating title: " .. err.stderr)
                 return callback(nil)
             end
             if data then
-                local result = chat.adapter.handlers.chat_output(adapter, data)
+                local result = _adapter.handlers.chat_output(_adapter, data)
                 if result and result.status then
                     if result.status == CONSTANTS.STATUS_SUCCESS then
                         local title = vim.trim(result.output.content or "")
