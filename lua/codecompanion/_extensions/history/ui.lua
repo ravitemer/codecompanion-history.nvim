@@ -29,23 +29,36 @@ function UI.new(opts, storage, title_generator)
     return self --[[@as Playground.UI]]
 end
 
----Update buffer title to show summary exists
+---Update chat title with optional suffix
 ---@param chat Chat
----@param generated_at number
-function UI:update_summary_indicator(chat, generated_at)
-    log:trace("Updating summary indicator for chat: %s", chat.opts.save_id or "N/A")
+---@param suffix? string Optional suffix to append to title
+---@param force? boolean
+function UI:update_chat_title(chat, suffix, force)
+    log:trace("Updating chat title for: %s", chat.opts.save_id or "N/A")
 
-    -- Summary indicator icon
-    local summary_icon = "📝 "
-    local time_info = utils.format_time(generated_at)
+    local base_title = chat.opts.title or (self.default_buf_title .. tostring(chat.id))
 
-    -- Create title with summary indicator
-    local title_parts = {
-        chat.opts.title or self.default_buf_title,
-        summary_icon .. "Summary (" .. time_info .. ")",
-    }
+    if suffix then
+        local full_title = force and suffix or (base_title .. " " .. suffix)
+        self:_set_buf_title(chat.bufnr, full_title)
+    else
+        self:_set_buf_title(chat.bufnr, base_title)
+    end
+end
 
-    self:_set_buf_title(chat.bufnr, title_parts)
+---Check and update summary indicator for existing chat
+---@param chat Chat
+function UI:check_and_update_summary_indicator(chat)
+    if not chat.opts.save_id then
+        return
+    end
+
+    local summaries = self.storage:get_summaries()
+    if summaries[chat.opts.save_id] then
+        self:update_chat_title(chat, "(📝)")
+    else
+        self:update_chat_title(chat) -- just base title
+    end
 end
 
 -- Private method for setting buffer title with retry
@@ -588,7 +601,7 @@ function UI:update_last_saved(chat, saved_at)
     log:trace("Updating last saved time for chat: %s", chat.opts.save_id or "N/A")
     --saved at icon
     local icon = " "
-    self:_set_buf_title(chat.bufnr, { chat.opts.title or self.default_buf_title, icon .. utils.format_time(saved_at) })
+    self:update_chat_title(chat, icon .. utils.format_time(saved_at))
 end
 
 local function select_opts(prompt, conditional)

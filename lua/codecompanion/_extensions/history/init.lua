@@ -134,17 +134,13 @@ function History:_setup_autocommands()
                     return
                 end
             end
-            -- Set initial buffer title if present that we passed while creating a chat from history
-
             -- Set initial buffer title
             if chat.opts.title then
                 log:trace("Setting existing chat title: %s", chat.opts.title)
-                self.ui:_set_buf_title(chat.bufnr, chat.opts.title)
+                self.ui:update_chat_title(chat) -- Use new method
             else
                 --set title to tell that this is a auto saving chat
-                local title = self:_get_title(chat)
-                log:trace("Setting default chat title: %s", title)
-                self.ui:_set_buf_title(chat.bufnr, title)
+                self.ui:update_chat_title(chat) -- Use new method
             end
 
             --Check if custom save_id exists, else generate
@@ -152,6 +148,9 @@ function History:_setup_autocommands()
                 chat.opts.save_id = tostring(os.time())
                 log:trace("Generated new save_id: %s", chat.opts.save_id)
             end
+
+            -- Check for existing summary and update indicator
+            self.ui:check_and_update_summary_indicator(chat)
 
             -- self:_subscribe_to_chat(chat)
         end),
@@ -197,19 +196,18 @@ function History:_setup_autocommands()
                 self.title_generator:generate(chat, function(generated_title)
                     if generated_title and generated_title ~= "" then
                         log:trace("Setting generated title: %s", generated_title)
-                        self.ui:_set_buf_title(chat.bufnr, generated_title)
                         if generated_title == "Deciding title..." then
+                            self.ui:update_chat_title(chat, generated_title, true)
                             return
                         end
                         chat.opts.title = generated_title
+                        self.ui:update_chat_title(chat)
                         --save the title to history
                         if self.opts.auto_save then
                             self.storage:save_chat(chat)
                         end
                     else
-                        local title = self:_get_title(chat)
-                        log:trace("Using default title: %s", title)
-                        self.ui:_set_buf_title(chat.bufnr, title)
+                        self.ui:update_chat_title(chat)
                     end
                 end)
             end
@@ -236,24 +234,15 @@ function History:_setup_autocommands()
                 self.storage:delete_chat(chat.opts.save_id)
             end
 
-            log:trace("Current title: %s", chat.opts.title)
-            local title = self:_get_title(chat)
-            log:trace("Resetting chat title: %s", title)
-            self.ui:_set_buf_title(chat.bufnr, title)
-
             -- Reset chat state
             chat.opts.title = nil
             chat.opts.save_id = tostring(os.time())
             log:trace("Generated new save_id after clear: %s", chat.opts.save_id)
+
+            -- Update title (no summary indicator for new chat)
+            self.ui:update_chat_title(chat)
         end),
     })
-end
-
----@param chat Chat
----@param title? string
----@return string
-function History:_get_title(chat, title)
-    return title and title or (self.opts.default_buf_title .. " " .. chat.id)
 end
 
 function History:generate_summary(chat)
@@ -262,21 +251,22 @@ function History:generate_summary(chat)
     end
 
     vim.notify("Generating summary...", vim.log.levels.INFO)
+    self.ui:update_chat_title(chat, "(🔄 Generating summary...)")
 
     self.summary_generator:generate(chat, function(summary, error)
         if error then
+            self.ui:update_chat_title(chat) -- revert to base title
             vim.notify("Failed to generate summary: " .. error, vim.log.levels.ERROR)
             return
         end
 
         if summary then
-            -- Save summary to storage
             local success = self.storage:save_summary(summary)
             if success then
                 vim.notify("Summary generated successfully", vim.log.levels.INFO)
-                -- Update buffer title to show summary exists
-                self.ui:update_summary_indicator(chat, summary.generated_at)
+                self.ui:update_chat_title(chat, "(📝)")
             else
+                self.ui:update_chat_title(chat) -- revert to base title
                 vim.notify("Failed to save summary", vim.log.levels.ERROR)
             end
         end

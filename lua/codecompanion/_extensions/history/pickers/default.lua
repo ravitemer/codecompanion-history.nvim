@@ -94,7 +94,7 @@ function DefaultPicker:_format_chat_entry(entry)
 
     -- Current chat indicator
     local is_current = self:is_current_item(entry)
-    local chevron = ""
+    local chevron = ""
     table.insert(parts, is_current and chevron or " ")
 
     -- Title
@@ -107,7 +107,7 @@ function DefaultPicker:_format_chat_entry(entry)
     end
 
     -- Relative time
-    local icon = " "
+    local icon = " "
     table.insert(parts, icon .. utils.format_relative_time(entry.updated_at) .. "")
 
     return table.concat(parts, " ")
