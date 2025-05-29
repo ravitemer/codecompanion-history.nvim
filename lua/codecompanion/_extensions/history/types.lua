@@ -10,6 +10,11 @@
 ---@field adapter? string? The adapter to use for generation
 ---@field model? string? The model of the adapter to use for generation
 
+---@class SummaryOpts
+---@field create_summary_keymap? string | table Keymap to generate summary for current chat (default: "gcs")
+---@field browse_summaries_keymap? string | table Keymap to browse saved summaries (default: "gbs")
+---@field generation_opts? SummaryGenerationOpts Options for summary generation
+
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat
 ---@field auto_generate_title? boolean  Generate title for the chat
@@ -23,6 +28,7 @@
 ---@field save_chat_keymap? string | table Keymap to save the current chat
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table}
+---@field summary? SummaryOpts Summary-related options
 
 ---@class Chat
 ---@field opts {title:string, save_id: string}
@@ -67,6 +73,28 @@
 ---@field message_count number
 ---@field token_estimate number
 
+---@class SummaryGenerationOpts
+---@field adapter? string The adapter to use for summary generation
+---@field model? string The model of the adapter to use for summary generation
+---@field context_size? number Maximum tokens to use for summarization context (default: 90000)
+---@field include_references? boolean Include user messages with references (slash commands, variables) (default: true)
+---@field include_tool_outputs? boolean Include tool execution results in summary context (default: true)
+---@field system_prompt? string|fun(): string Custom system prompt for summarization (can be a string or function)
+
+---@class SummaryData
+---@field summary_id string
+---@field chat_id string
+---@field generated_at number
+---@field content string
+---@field project_root? string
+
+---@class SummaryIndexData
+---@field summary_id string
+---@field chat_id string
+---@field generated_at number
+---@field project_root? string
+
+----
 ---@class UIHandlers
 ---@field on_preview fun(chat_data: ChatData): string[]
 ---@field on_delete fun(chat_data: ChatData):nil

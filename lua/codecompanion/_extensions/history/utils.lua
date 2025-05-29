@@ -1,5 +1,16 @@
 local M = {}
 
+function M.remove_duplicates(list)
+    local seen = {}
+    local result = {}
+    for _, item in ipairs(list) do
+        if not seen[item] then
+            seen[item] = true
+            table.insert(result, item)
+        end
+    end
+    return result
+end
 --- Format a Unix timestamp into a time string (HH:MM:SS).
 ---@param timestamp number Unix timestamp
 ---@return string Formatted time string in HH:MM:SS format

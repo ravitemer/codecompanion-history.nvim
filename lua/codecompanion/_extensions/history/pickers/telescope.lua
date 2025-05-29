@@ -7,33 +7,30 @@ local TelescopePicker = setmetatable({}, {
 })
 TelescopePicker.__index = TelescopePicker
 
----@param current_save_id? string
-function TelescopePicker:browse(current_save_id)
+function TelescopePicker:browse()
     require("telescope.pickers")
         .new({}, {
-            prompt_title = "Saved Chats",
+            prompt_title = self.config.title,
             finder = require("telescope.finders").new_table({
-                results = self.chats,
+                results = self.config.items,
                 entry_maker = function(entry)
-                    local display_title =
-                        self:format_entry(entry, (current_save_id and current_save_id) == entry.save_id)
+                    local display_title = self:format_entry(entry)
 
+                    -- Create telescope entry with generic fields
                     return vim.tbl_extend("keep", {
                         value = entry,
                         display = display_title,
-                        ordinal = entry.title or "",
-                        name = entry.title,
-                        save_id = entry.save_id,
-                        title = entry.title,
-                        messages = entry.messages,
+                        ordinal = self:get_item_title(entry),
+                        name = self:get_item_title(entry),
+                        item_id = self:get_item_id(entry),
                     }, entry)
                 end,
             }),
             sorter = require("telescope.config").values.generic_sorter({}),
             previewer = require("telescope.previewers").new_buffer_previewer({
-                title = "Chat Preview",
+                title = self:get_item_name_singular():gsub("^%l", string.upper) .. " Preview",
                 define_preview = function(preview_state, entry)
-                    local lines = self.handlers.on_preview(entry)
+                    local lines = self.config.handlers.on_preview(entry)
                     if not lines then
                         return
                     end
@@ -62,7 +59,11 @@ function TelescopePicker:browse(current_save_id)
                     -- Confirm deletion if multiple items selected
                     if #selections > 1 then
                         local confirm = vim.fn.confirm(
-                            "Are you sure you want to delete " .. #selections .. " items? (y/n)",
+                            "Are you sure you want to delete "
+                                .. #selections
+                                .. " "
+                                .. self:get_item_name_plural()
+                                .. "? (y/n)",
                             "&Yes\n&No"
                         )
                         if confirm ~= 1 then
@@ -71,10 +72,11 @@ function TelescopePicker:browse(current_save_id)
                     end
                     -- Delete all selected items
                     for _, selection in ipairs(selections) do
-                        self.handlers.on_delete(selection.value)
+                        self.config.handlers.on_delete(selection.value)
                     end
-                    self.handlers.on_open()
+                    self.config.handlers.on_open()
                 end
+
                 -- Function to handle renaming
                 local rename_selection = function()
                     local selection = action_state.get_selected_entry()
@@ -86,43 +88,43 @@ function TelescopePicker:browse(current_save_id)
                     -- Prompt for new title
                     vim.ui.input({
                         prompt = "New title: ",
-                        default = selection.value.title or "",
+                        default = self:get_item_title(selection.value),
                     }, function(new_title)
                         if new_title and vim.trim(new_title) ~= "" then
-                            self.handlers.on_rename(selection.value, new_title)
-                            self.handlers.on_open()
+                            self.config.handlers.on_rename(selection.value, new_title)
+                            self.config.handlers.on_open()
                         end
                     end)
                 end
 
-                -- Multi-select toggle with <Tab>
+                -- Select action
                 actions.select_default:replace(function()
                     local selection = action_state.get_selected_entry()
                     if selection then
                         actions.close(prompt_bufnr)
-                        self.handlers.on_select(selection.value)
+                        self.config.handlers.on_select(selection.value)
                     end
                 end)
-                -- Delete chats
-                -- Delete chats (normal mode and <M-d> in insert mode)
-                vim.keymap.set({ "n" }, self.keymaps.delete.n, delete_selections, {
+
+                -- Delete items (normal mode and insert mode)
+                vim.keymap.set({ "n" }, self.config.keymaps.delete.n, delete_selections, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
-                vim.keymap.set({ "i" }, self.keymaps.delete.i, delete_selections, {
+                vim.keymap.set({ "i" }, self.config.keymaps.delete.i, delete_selections, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
 
-                -- Rename chat (normal mode and <C-r> in insert mode)
-                vim.keymap.set({ "n" }, self.keymaps.rename.n, rename_selection, {
+                -- Rename items (normal mode and insert mode)
+                vim.keymap.set({ "n" }, self.config.keymaps.rename.n, rename_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,
                 })
-                vim.keymap.set({ "i" }, self.keymaps.rename.i, rename_selection, {
+                vim.keymap.set({ "i" }, self.config.keymaps.rename.i, rename_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,

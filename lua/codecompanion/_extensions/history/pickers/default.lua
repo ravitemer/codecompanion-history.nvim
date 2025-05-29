@@ -1,70 +1,141 @@
 local utils = require("codecompanion._extensions.history.utils")
 
+---@class PickerConfig
+---@field item_type string "chat" or "summary"
+---@field items table[] Array of items to display
+---@field handlers table Action handlers
+---@field keymaps table Picker keymaps
+---@field current_item_id? string Current item ID for highlighting
+---@field title string Picker title
+
 ---@class DefaultPicker
----@field chats ChatData[]
----@field handlers UIHandlers
+---@field config PickerConfig
 local DefaultPicker = {}
 DefaultPicker.__index = DefaultPicker
 
+---@param config PickerConfig
+---@return DefaultPicker
+function DefaultPicker:new(config)
+    local base = setmetatable({}, self)
+    self.config = config
+    return base
+end
+
+function DefaultPicker:browse()
+    vim.ui.select(self.config.items, {
+        prompt = self.config.title,
+        format_item = function(item)
+            return self:format_entry(item)
+        end,
+    }, function(selected)
+        if selected then
+            self.config.handlers.on_select(selected)
+        end
+    end)
+end
+
+---Get the unique ID for an item
+---@param item table
+---@return string
+function DefaultPicker:get_item_id(item)
+    if self.config.item_type == "chat" then
+        return item.save_id
+    else -- summary
+        return item.summary_id
+    end
+end
+
+---Get the display title for an item
+---@param item table
+---@return string
+function DefaultPicker:get_item_title(item)
+    if self.config.item_type == "chat" then
+        return item.title or "Untitled"
+    else -- summary
+        return item.chat_id or "Untitled"
+    end
+end
+
+---Check if an item is the current item
+---@param item table
+---@return boolean
+function DefaultPicker:is_current_item(item)
+    return self.config.current_item_id == self:get_item_id(item)
+end
+
+---Get the item name for user messages (singular)
+---@return string
+function DefaultPicker:get_item_name_singular()
+    return self.config.item_type == "chat" and "chat" or "summary"
+end
+
+---Get the item name for user messages (plural)
+---@return string
+function DefaultPicker:get_item_name_plural()
+    return self.config.item_type == "chat" and "chats" or "summaries"
+end
+
+---Generic format entry method that dispatches based on item type
+---@param entry table Entry from the index
+---@return string formatted_display
+function DefaultPicker:format_entry(entry)
+    if self.config.item_type == "chat" then
+        return self:_format_chat_entry(entry)
+    else -- summary
+        return self:_format_summary_entry(entry)
+    end
+end
+
 ---Format a chat entry for display
 ---@param entry ChatIndexData Entry from the index
----@param is_current boolean Whether this is the current chat
 ---@return string formatted_display
-function DefaultPicker:format_entry(entry, is_current)
+function DefaultPicker:_format_chat_entry(entry)
     local parts = {}
 
     -- Current chat indicator
-    local chevron = ""
+    local is_current = self:is_current_item(entry)
+    local chevron = ""
     table.insert(parts, is_current and chevron or " ")
 
     -- Title
-    table.insert(parts, entry.title or "Untitled")
-
-    -- -- Model (compact format)
-    -- if entry.model then
-    --     local model_short = entry.model:match("([^/]+)$") or entry.model
-    --     if #model_short > 15 then
-    --         model_short = model_short:sub(1, 12) .. "..."
-    --     end
-    --     table.insert(parts, "(" .. model_short .. ")")
-    -- end
+    table.insert(parts, self:get_item_title(entry))
 
     if entry.token_estimate then
         local tokens = entry.token_estimate
         tokens = string.format("%.1fk", tokens / 1000)
         table.insert(parts, "(~" .. tokens .. ")")
     end
+
     -- Relative time
-    local icon = " "
+    local icon = " "
     table.insert(parts, icon .. utils.format_relative_time(entry.updated_at) .. "")
 
     return table.concat(parts, " ")
 end
 
----@param chats ChatData[]
----@param handlers UIHandlers
----@return DefaultPicker
-function DefaultPicker:new(chats, handlers, keymaps)
-    local base = setmetatable({}, self)
-    self.chats = chats
-    self.handlers = handlers
-    self.keymaps = keymaps
+---Format a summary entry for display
+---@param entry SummaryIndexData Entry from the index
+---@return string formatted_display
+function DefaultPicker:_format_summary_entry(entry)
+    local parts = {}
 
-    return base
-end
+    -- Title
+    table.insert(parts, self:get_item_title(entry))
 
----@param current_save_id? string
-function DefaultPicker:browse(current_save_id)
-    vim.ui.select(self.chats, {
-        prompt = "Saved Chats",
-        format_item = function(item)
-            return self:format_entry(item, (current_save_id and current_save_id) == item.save_id)
-        end,
-    }, function(selected)
-        if selected then
-            self.handlers.on_select(selected)
+    -- Project root (abbreviated)
+    if entry.project_root then
+        local project_name = entry.project_root:match("([^/]+)$") or entry.project_root
+        if #project_name > 20 then
+            project_name = project_name:sub(1, 17) .. "..."
         end
-    end)
+        table.insert(parts, "(" .. project_name .. ")")
+    end
+
+    -- Relative time
+    local icon = "📝 "
+    table.insert(parts, icon .. utils.format_relative_time(entry.generated_at))
+
+    return table.concat(parts, " ")
 end
 
 return DefaultPicker

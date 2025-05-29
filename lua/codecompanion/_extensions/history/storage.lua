@@ -14,6 +14,26 @@ local utils = require("codecompanion._extensions.history.utils")
 ---@param file_path string Path to the file
 ---@return {ok: boolean, data: table|nil, error: string|nil} Result
 function FileUtils.read_json(file_path)
+    -- Use read_file to get the content
+    local file_result = FileUtils.read_file(file_path)
+    if not file_result.ok then
+        return { ok = false, data = nil, error = file_result.error }
+    end
+
+    -- Parse JSON content
+    local success, data = pcall(vim.json.decode, file_result.data)
+    if not success then
+        log:error("Failed to parse JSON from file: %s - %s", file_path, data)
+        return { ok = false, data = nil, error = "Failed to parse JSON: " .. tostring(data) }
+    end
+
+    return { ok = true, data = data, error = nil }
+end
+
+---Read content from a file
+---@param file_path string Path to the file
+---@return {ok: boolean, data: string|nil, error: string|nil} Result
+function FileUtils.read_file(file_path)
     local Path = require("plenary.path")
     local path = Path:new(file_path)
 
@@ -28,20 +48,14 @@ function FileUtils.read_json(file_path)
         return { ok = false, data = nil, error = "Failed to read file: " .. (read_error or "unknown error") }
     end
 
-    local success, data = pcall(vim.json.decode, content)
-    if not success then
-        log:error("Failed to parse JSON from file: %s - %s", file_path, data)
-        return { ok = false, data = nil, error = "Failed to parse JSON: " .. tostring(data) }
-    end
-
-    return { ok = true, data = data, error = nil }
+    return { ok = true, data = content, error = nil }
 end
 
----Write data to a JSON file
+---Write content to a file
 ---@param file_path string Path to the file
----@param data table Data to write
+---@param content string Content to write
 ---@return {ok: boolean, error: string|nil} Result
-function FileUtils.write_json(file_path, data)
+function FileUtils.write_file(file_path, content)
     local Path = require("plenary.path")
     local path = Path:new(file_path)
 
@@ -52,6 +66,22 @@ function FileUtils.write_json(file_path, data)
         parent:mkdir({ parents = true })
     end
 
+    local success, write_error = pcall(function()
+        return path:write(content, "w")
+    end)
+    if not success then
+        log:error("Failed to write file: %s - %s", file_path, write_error or "unknown error")
+        return { ok = false, error = "Failed to write file: " .. (write_error or "unknown error") }
+    end
+
+    return { ok = true, error = nil }
+end
+
+---Write data to a JSON file
+---@param file_path string Path to the file
+---@param data table Data to write
+---@return {ok: boolean, error: string|nil} Result
+function FileUtils.write_json(file_path, data)
     -- Fix: Ensure data is a table
     if type(data) ~= "table" then
         log:error("Cannot encode non-table data for file: %s", file_path)
@@ -64,15 +94,7 @@ function FileUtils.write_json(file_path, data)
         return { ok = false, error = "Failed to encode JSON: " .. (encode_error or "unknown error") }
     end
 
-    local success, write_error = pcall(function()
-        return path:write(encoded, "w")
-    end)
-    if not success then
-        log:error("Failed to write file: %s - %s", file_path, write_error or "unknown error")
-        return { ok = false, error = "Failed to write file: " .. (write_error or "unknown error") }
-    end
-
-    return { ok = true, error = nil }
+    return FileUtils.write_file(file_path, encoded)
 end
 
 ---Delete a file
@@ -172,6 +194,13 @@ function Storage:_ensure_storage_dirs()
         chats_dir:mkdir({ parents = true })
     end
 
+    -- Create summaries directory
+    local summaries_dir = Path:new(self.base_path .. "/summaries")
+    if not summaries_dir:exists() then
+        log:trace("Creating summaries directory: %s", summaries_dir:absolute())
+        summaries_dir:mkdir({ parents = true })
+    end
+
     -- Initialize index file if it doesn't exist
     local index_path = Path:new(self.index_path)
     if not index_path:exists() then
@@ -181,6 +210,17 @@ function Storage:_ensure_storage_dirs()
         local result = FileUtils.write_json(self.index_path, empty_index)
         if not result.ok then
             log:error("Failed to initialize index file: %s", result.error)
+        end
+    end
+
+    -- Initialize summaries index file if it doesn't exist
+    local summaries_index_path = Path:new(self.base_path .. "/summaries_index.json")
+    if not summaries_index_path:exists() then
+        log:trace("Initializing empty summaries index file: %s", summaries_index_path:absolute())
+        local empty_index = vim.empty_dict()
+        local result = FileUtils.write_json(summaries_index_path:absolute(), empty_index)
+        if not result.ok then
+            log:error("Failed to initialize summaries index file: %s", result.error)
         end
     end
 end
@@ -457,6 +497,62 @@ function Storage:rename_chat(save_id, new_title)
 
     log:debug("Successfully renamed chat %s to: %s", save_id, new_title)
     return true
+end
+
+---Save a summary to storage
+---@param summary_data SummaryData
+---@return boolean success
+function Storage:save_summary(summary_data)
+    -- Save summary content to markdown file
+    local summary_path = self.base_path .. "/summaries/" .. summary_data.summary_id .. ".md"
+    local content_result = FileUtils.write_file(summary_path, summary_data.content)
+    if not content_result.ok then
+        log:error("Failed to save summary content: %s", content_result.error)
+        return false
+    end
+
+    -- Update summaries index
+    local index_result = self:_update_summaries_index(summary_data)
+    return index_result.ok
+end
+
+---Update summaries index with summary data
+---@param summary_data SummaryData
+---@return {ok: boolean, error: string|nil}
+function Storage:_update_summaries_index(summary_data)
+    local summaries_index_path = self.base_path .. "/summaries_index.json"
+
+    -- Read current index
+    local index_result = FileUtils.read_json(summaries_index_path)
+    local index = index_result.ok and index_result.data or {}
+
+    -- Update index entry
+    index[summary_data.summary_id] = {
+        summary_id = summary_data.summary_id,
+        chat_id = summary_data.chat_id,
+        generated_at = summary_data.generated_at,
+        project_root = summary_data.project_root,
+    }
+
+    -- Write updated index
+    return FileUtils.write_json(summaries_index_path, index)
+end
+
+---Get all summaries from storage (index only)
+---@return table<string, SummaryIndexData>
+function Storage:get_summaries()
+    local summaries_index_path = self.base_path .. "/summaries_index.json"
+    local result = FileUtils.read_json(summaries_index_path)
+    return result.ok and result.data or {}
+end
+
+---Load a specific summary by ID
+---@param summary_id string
+---@return string|nil summary content
+function Storage:load_summary(summary_id)
+    local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
+    local result = FileUtils.read_file(summary_path)
+    return result.ok and result.data or nil
 end
 
 return Storage
