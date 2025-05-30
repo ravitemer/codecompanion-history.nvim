@@ -47,7 +47,8 @@ T["Picker Resolution"]["should use resolved picker in history init"] = function(
         local opts = {
             picker = pickers.history, -- This should be auto-resolved
             dir_to_save = vim.fn.stdpath("data") .. "/test-history",
-            enable_logging = false
+            enable_logging = false,
+            summary = {}
         }
         
         local history = History.new(opts)
