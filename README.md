@@ -15,15 +15,24 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 
 ## ✨ Features
 
-- 💾 Flexible chat saving:
-  - Automatic session saving (can be disabled)
-  - Manual save with dedicated keymap
-- 🎯 Smart title generation for chats
-- 🔄 Continue from where you left
-- 📚 Browse saved chats with preview
-- 🔍 Multiple picker interfaces
-- ⌛ Optional automatic chat expiration
-- ⚡ Restore chat sessions with full context and tools state
+### 💾 Chat Management
+- **Flexible chat saving**: Automatic session saving (can be disabled) + manual save with dedicated keymap
+- **Smart title generation**: Auto-generate meaningful titles for chats
+- **Continue conversations**: Resume from where you left off
+- **Browse with preview**: Navigate saved chats with content preview
+- **Multiple picker interfaces**: Telescope, Snacks, FZF-Lua, and default vim.ui.select
+- **Optional chat expiration**: Automatically clean up old chats
+- **Complete session restoration**: Restore with full context and tools state
+
+### 📝 Summary System
+- **Manual summary generation**: Create summaries for any chat with `gcs`
+- **Intelligent content processing**: Extracts meaningful conversation content while filtering noise
+- **Chunked summarization**: Handles large conversations by splitting into manageable chunks
+- **Customizable generation**: Configure adapter, model, and system prompts
+- **Rich metadata**: Includes chat title, project root, and generation timestamps
+- **Summary browsing**: Dedicated browser with `gbs` to explore all summaries
+- **In-editor editing**: Preview and edit summaries with `gps` in main editor
+- **Visual indicators**: Chats with summaries show 📝 icon in history browser
 
 The following CodeCompanion features are preserved when saving and restoring chats:
 
@@ -94,21 +103,37 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface (auto resolved to a valid picker)
                 picker = "telescope", --- ("telescope", "snacks", "fzf-lua", or "default") 
-                ---Automatically generate titles for new chats
+                
+                -- Title generation
                 auto_generate_title = true,
                 title_generation_opts = {
-                    ---Adapter for generating titles (defaults to current chat adapter) 
-                    adapter = nil, -- "copilot"
-                    ---Model for generating titles (defaults to current chat model)
-                    model = nil, -- "gpt-4o"
+                    adapter = nil, -- defaults to current chat adapter
+                    model = nil, -- defaults to current chat model
                 },
-                ---On exiting and entering neovim, loads the last chat on opening chat
+                
+                -- Summary system
+                summary = {
+                    -- Keymap to generate summary (default: "gcs")
+                    create_summary_keymap = "gcs",
+                    -- Keymap to browse summaries (default: "gbs")
+                    browse_summaries_keymap = "gbs",
+                    -- Keymap to preview/edit summary (default: "gps")
+                    preview_summary_keymap = "gps",
+                    
+                    generation_opts = {
+                        adapter = nil, -- defaults to current chat adapter
+                        model = nil, -- defaults to current chat model
+                        context_size = 90000, -- max tokens for summarization
+                        include_references = true, -- include slash command content
+                        include_tool_outputs = true, -- include tool execution results
+                        system_prompt = nil, -- custom system prompt (string or function)
+                    },
+                },
+                
+                -- Other options
                 continue_last_chat = false,
-                ---When chat is cleared with `gx` delete the chat from history
                 delete_on_clearing_chat = false,
-                ---Directory path to save the chats
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
-                ---Enable detailed logging for history extension
                 enable_logging = false,
             }
         }
@@ -121,17 +146,25 @@ require("codecompanion").setup({
 #### 🎯 Commands
 
 - `:CodeCompanionHistory` - Open the history browser
+- `:CodeCompanionSummaries` - Browse all summaries
 
 #### ⌨️ Chat Buffer Keymaps
 
+**History Management:**
 - `gh` - Open history browser (customizable via `opts.keymap`)
 - `sc` - Save current chat manually (customizable via `opts.save_chat_keymap`)
+
+**Summary System:**
+- `gcs` - Generate summary for current chat (customizable via `opts.summary.create_summary_keymap`)
+- `gbs` - Browse saved summaries (customizable via `opts.summary.browse_summaries_keymap`)
+- `gps` - Preview/edit summary for current chat (customizable via `opts.summary.preview_summary_keymap`)
 
 #### 📚 History Browser
 
 The history browser shows all your saved chats with:
 - Title (auto-generated or custom)
-- Last updated time
+- Summary indicator (📝 icon for chats with summaries)
+- Token estimates and relative timestamps
 - Preview of chat contents
 
 Actions in history browser:
@@ -143,41 +176,60 @@ Actions in history browser:
   - `<M-d>` (Alt+d) - Delete selected chat(s)
   - `<M-r>` (Alt+r) - Rename selected chat
 
-> Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple chats can be selected for deletion using picker's multi-select feature (press `<Tab>`).
+#### 📝 Summary Browser
+
+The summary browser shows all your generated summaries with:
+- Chat title (from original conversation)
+- Project context and relative timestamps
+- Preview of summary content
+
+Actions in summary browser:
+- `<CR>` - Open associated chat
+- Delete/rename actions (same as history browser)
+
+#### ✏️ Summary Editing
+
+When you press `gps` on a chat with a summary:
+- Opens the summary markdown file in your main editor
+- Full editing capabilities with syntax highlighting
+- Save with `:w` as usual
+- Automatically updates summary storage
+
+> Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple items can be selected for deletion using picker's multi-select feature (press `<Tab>`).
 
 #### 🔧 API
 
 The history extension exports the following functions that can be accessed via `require("codecompanion").extensions.history`:
 
 ```lua
--- Get the storage location for saved chats
-get_location(): string?
+-- Chat Management
+get_location(): string?                           -- Get storage location
+save_chat(chat?: CodeCompanion.Chat)             -- Save chat to storage
+get_chats(): table<string, ChatIndexData>        -- Get all chat metadata
+load_chat(save_id: string): ChatData?            -- Load specific chat
+delete_chat(save_id: string): boolean            -- Delete chat
 
--- Save a chat to storage (uses last chat if none provided)
-save_chat(chat?: CodeCompanion.Chat)
-
--- Get metadata for all saved chats
-get_chats(): table<string, ChatIndexData>
-
--- Load a specific chat by its save_id
-load_chat(save_id: string): ChatData?
-
--- Delete a chat by its save_id
-delete_chat(save_id: string): boolean
+-- Summary Management  
+generate_summary(chat?: CodeCompanion.Chat)      -- Generate summary for chat
+preview_summary(chat?: CodeCompanion.Chat)       -- Preview/edit summary
+get_summaries(): table<string, SummaryIndexData> -- Get all summary metadata
+load_summary(summary_id: string): string?        -- Load summary content
 ```
 
 Example usage:
 ```lua
 local history = require("codecompanion").extensions.history
 
--- Get all saved chats metadata
+-- Chat operations
 local chats = history.get_chats()
-
--- Load a specific chat
 local chat_data = history.load_chat("some_save_id")
-
--- Delete a chat
 history.delete_chat("some_save_id")
+
+-- Summary operations
+history.generate_summary() -- generates for current chat
+local summaries = history.get_summaries()
+local summary_content = history.load_summary("some_save_id")
+history.preview_summary() -- opens summary for editing
 ```
 
 ## ⚙️ How It Works
@@ -298,9 +350,13 @@ The extension integrates with CodeCompanion through a robust event-driven archit
 
 </details>
 
-## 📝 TODOs
+## 🔮 Future Roadmap
 
-- [x] Add support for additional pickers like snacks, fzf etc
+
+### Upcoming Features
+- [ ] Auto-summary generation options
+- [ ] Summary search and filtering
+- [ ] Integration with vector databases
 
 ## 🔌 Related Extensions
 
@@ -314,7 +370,3 @@ Special thanks to [Oli Morris](https://github.com/olimorris) for creating the am
 ## 📄 License
 
 MIT
-
-
-
-
