@@ -13,6 +13,7 @@
 ---@class SummaryOpts
 ---@field create_summary_keymap? string | table Keymap to generate summary for current chat (default: "gcs")
 ---@field browse_summaries_keymap? string | table Keymap to browse saved summaries (default: "gbs")
+---@field preview_summary_keymap? string | table Keymap to preview/edit summary (default: "gps")
 ---@field generation_opts? SummaryGenerationOpts Options for summary generation
 
 ---@class HistoryOpts

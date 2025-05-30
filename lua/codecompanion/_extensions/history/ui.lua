@@ -61,7 +61,33 @@ function UI:check_and_update_summary_indicator(chat)
     end
 end
 
--- Private method for setting buffer title with retry
+---Open summary for editing in main editor
+---@param chat Chat
+function UI:open_summary_preview(chat)
+    local summary_path = self.storage:get_location() .. "/summaries/" .. chat.opts.save_id .. ".md"
+
+    -- Check if summary file exists
+    local Path = require("plenary.path")
+    if not Path:new(summary_path):exists() then
+        vim.notify("Summary file not found", vim.log.levels.ERROR)
+        return
+    end
+
+    -- Get editor info to find appropriate window
+    local editor_info = utils.get_editor_info()
+
+    -- Use last active window if it's not the chat window
+    if editor_info.last_active and editor_info.last_active.bufnr ~= chat.bufnr then
+        vim.api.nvim_set_current_win(editor_info.last_active.winnr)
+    end
+
+    -- Open the summary file for editing
+    vim.cmd("edit " .. vim.fn.fnameescape(summary_path))
+
+    log:trace("Opened summary file for editing: %s", summary_path)
+end
+
+--method for setting buffer title with retry
 ---@param bufnr number
 ---@param title string|string[]
 ---@param attempt? number

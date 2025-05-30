@@ -49,6 +49,8 @@ local default_opts = {
         create_summary_keymap = "gcs",
         ---Keymap to browse saved summaries
         browse_summaries_keymap = "gbs",
+        ---Keymap to preview/edit summary
+        preview_summary_keymap = "gps",
         ---Summary generation options
         generation_opts = {
             adapter = nil, -- defaults to current chat adapter
@@ -273,6 +275,29 @@ function History:generate_summary(chat)
     end)
 end
 
+function History:preview_summary(chat)
+    if not chat.opts.save_id then
+        vim.notify("Cannot preview summary: Chat not saved", vim.log.levels.WARN)
+        return
+    end
+
+    -- Check if summary exists
+    local summaries = self.storage:get_summaries()
+    local summary_data = summaries[chat.opts.save_id]
+
+    if not summary_data then
+        -- No summary exists, offer to generate
+        local choice = vim.fn.confirm("No summary exists for this chat. Generate one?", "&Yes\n&No", 1)
+        if choice == 1 then
+            self:generate_summary(chat)
+        end
+        return
+    end
+
+    -- Open summary for editing
+    self.ui:open_summary_preview(chat)
+end
+
 function History:_setup_keymaps()
     local function form_modes(v)
         if type(v) == "string" then
@@ -282,42 +307,59 @@ function History:_setup_keymaps()
         end
         return v
     end
-    require("codecompanion.config").strategies.chat.keymaps["Saved Chats"] = {
-        modes = form_modes(self.opts.keymap),
-        description = "Browse Saved Chats",
-        callback = function(_)
-            self.ui:open_saved_chats()
-        end,
-    }
-    require("codecompanion.config").strategies.chat.keymaps["Save Current Chat"] = {
-        modes = form_modes(self.opts.save_chat_keymap),
-        description = "Save current chat",
-        callback = function(chat)
-            if not chat then
-                return
-            end
-            self.storage:save_chat(chat)
-            log:debug("Saved current chat")
-        end,
-    }
-    require("codecompanion.config").strategies.chat.keymaps["Generate Summary"] = {
-        modes = form_modes(self.opts.summary.create_summary_keymap),
-        description = "Generate Summary for Current Chat",
-        callback = function(chat)
-            if not chat then
-                return
-            end
-            self:generate_summary(chat)
-        end,
+
+    local keymaps = {
+        ["Saved Chats"] = {
+            modes = form_modes(self.opts.keymap),
+            description = "Browse Saved Chats",
+            callback = function(_)
+                self.ui:open_saved_chats()
+            end,
+        },
+        ["Save Current Chat"] = {
+            modes = form_modes(self.opts.save_chat_keymap),
+            description = "Save current chat",
+            callback = function(chat)
+                if not chat then
+                    return
+                end
+                self.storage:save_chat(chat)
+                log:debug("Saved current chat")
+            end,
+        },
+        ["Generate Summary"] = {
+            modes = form_modes(self.opts.summary.create_summary_keymap),
+            description = "Generate Summary for Current Chat",
+            callback = function(chat)
+                if not chat then
+                    return
+                end
+                self:generate_summary(chat)
+            end,
+        },
+        ["Browse Summaries"] = {
+            modes = form_modes(self.opts.summary.browse_summaries_keymap),
+            description = "Browse Saved Summaries",
+            callback = function(_)
+                self.ui:open_summaries()
+            end,
+        },
+        ["Preview Summary"] = {
+            modes = form_modes(self.opts.summary.preview_summary_keymap),
+            description = "Preview/Edit Summary for Current Chat",
+            callback = function(chat)
+                if not chat then
+                    return
+                end
+                self:preview_summary(chat)
+            end,
+        },
     }
 
-    require("codecompanion.config").strategies.chat.keymaps["Browse Summaries"] = {
-        modes = form_modes(self.opts.summary.browse_summaries_keymap),
-        description = "Browse Saved Summaries",
-        callback = function(_)
-            self.ui:open_summaries()
-        end,
-    }
+    -- Add all keymaps to codecompanion
+    for name, keymap in pairs(keymaps) do
+        require("codecompanion.config").strategies.chat.keymaps[name] = keymap
+    end
 end
 
 -- ---@param chat Chat
@@ -400,6 +442,15 @@ return {
                 return
             end
             history_instance:generate_summary(chat)
+        end,
+
+        ---Preview/Edit summary for a chat
+        ---@param chat? Chat
+        preview_summary = function(chat)
+            if not history_instance then
+                return
+            end
+            history_instance:preview_summary(chat)
         end,
 
         ---Get all summaries
