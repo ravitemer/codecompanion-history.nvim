@@ -356,6 +356,7 @@ function SummaryGenerator:_create_summary_object(chat, project_root, summary_con
     return {
         summary_id = chat.opts.save_id,
         chat_id = chat.opts.save_id,
+        chat_title = chat.opts.title, -- Add chat title
         generated_at = os.time(),
         content = summary_content,
 

@@ -3,6 +3,7 @@
 ---@field index_path string Path to index file
 ---@field chats_dir string Path to chats directory
 ---@field expiration_days number Number of days after which chats are deleted
+---@field summaries_cache table|nil Cache for summaries index
 local Storage = {}
 
 -- File I/O utility functions
@@ -513,7 +514,16 @@ function Storage:save_summary(summary_data)
 
     -- Update summaries index
     local index_result = self:_update_summaries_index(summary_data)
+
+    -- Invalidate cache after saving
+    self:_invalidate_summaries_cache()
+
     return index_result.ok
+end
+
+---Invalidate summaries cache
+function Storage:_invalidate_summaries_cache()
+    self.summaries_cache = nil
 end
 
 ---Update summaries index with summary data
@@ -530,6 +540,7 @@ function Storage:_update_summaries_index(summary_data)
     index[summary_data.summary_id] = {
         summary_id = summary_data.summary_id,
         chat_id = summary_data.chat_id,
+        chat_title = summary_data.chat_title, -- Add chat title
         generated_at = summary_data.generated_at,
         project_root = summary_data.project_root,
     }
@@ -541,9 +552,14 @@ end
 ---Get all summaries from storage (index only)
 ---@return table<string, SummaryIndexData>
 function Storage:get_summaries()
+    if self.summaries_cache then
+        return self.summaries_cache
+    end
+
     local summaries_index_path = self.base_path .. "/summaries_index.json"
     local result = FileUtils.read_json(summaries_index_path)
-    return result.ok and result.data or {}
+    self.summaries_cache = result.ok and result.data or {}
+    return self.summaries_cache
 end
 
 ---Load a specific summary by ID

@@ -168,11 +168,15 @@ end
 ---Format items for display based on type
 ---@param items_data table Raw items from storage
 ---@param item_type string "chat" or "summary"
+---@param storage Storage Storage instance for getting summaries
 ---@return table[] Formatted items
-local function format_items(items_data, item_type)
+local function format_items(items_data, item_type, storage)
     local items = {}
 
     if item_type == "chat" then
+        -- Get summaries to check which chats have summaries
+        local summaries = storage:get_summaries()
+
         for _, chat_item in pairs(items_data) do
             local save_id = chat_item.save_id
             table.insert(
@@ -182,6 +186,7 @@ local function format_items(items_data, item_type)
                     name = chat_item.title or save_id,
                     title = chat_item.title or save_id,
                     updated_at = chat_item.updated_at or 0,
+                    has_summary = summaries[save_id] ~= nil, -- Add summary flag
                 }, chat_item)
             )
         end
@@ -220,7 +225,7 @@ function UI:_open_items(item_type, items_data, handlers, current_item_id)
     end
 
     -- Format the items for display
-    local items = format_items(items_data, item_type)
+    local items = format_items(items_data, item_type, self.storage)
     log:trace("Loaded %d %s", #items, item_name)
 
     -- Load the configured picker module

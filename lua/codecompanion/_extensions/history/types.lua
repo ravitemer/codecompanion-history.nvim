@@ -91,6 +91,7 @@
 ---@class SummaryIndexData
 ---@field summary_id string
 ---@field chat_id string
+---@field chat_title? string
 ---@field generated_at number
 ---@field project_root? string
 

@@ -52,7 +52,7 @@ function DefaultPicker:get_item_title(item)
     if self.config.item_type == "chat" then
         return item.title or "Untitled"
     else -- summary
-        return item.chat_id or "Untitled"
+        return item.chat_title or item.chat_id or "Untitled"
     end
 end
 
@@ -99,6 +99,11 @@ function DefaultPicker:_format_chat_entry(entry)
 
     -- Title
     table.insert(parts, self:get_item_title(entry))
+
+    -- Summary indicator
+    if entry.has_summary then
+        table.insert(parts, "📝")
+    end
 
     if entry.token_estimate then
         local tokens = entry.token_estimate
