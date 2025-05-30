@@ -6,121 +6,8 @@
 ---@field summaries_cache table|nil Cache for summaries index
 local Storage = {}
 
--- File I/O utility functions
-local FileUtils = {}
 local log = require("codecompanion._extensions.history.log")
 local utils = require("codecompanion._extensions.history.utils")
-
----Read and decode a JSON file
----@param file_path string Path to the file
----@return {ok: boolean, data: table|nil, error: string|nil} Result
-function FileUtils.read_json(file_path)
-    -- Use read_file to get the content
-    local file_result = FileUtils.read_file(file_path)
-    if not file_result.ok then
-        return { ok = false, data = nil, error = file_result.error }
-    end
-
-    -- Parse JSON content
-    local success, data = pcall(vim.json.decode, file_result.data)
-    if not success then
-        log:error("Failed to parse JSON from file: %s - %s", file_path, data)
-        return { ok = false, data = nil, error = "Failed to parse JSON: " .. tostring(data) }
-    end
-
-    return { ok = true, data = data, error = nil }
-end
-
----Read content from a file
----@param file_path string Path to the file
----@return {ok: boolean, data: string|nil, error: string|nil} Result
-function FileUtils.read_file(file_path)
-    local Path = require("plenary.path")
-    local path = Path:new(file_path)
-
-    if not path:exists() then
-        log:trace("File does not exist: %s", file_path)
-        return { ok = false, data = nil, error = "File does not exist: " .. file_path }
-    end
-
-    local content, read_error = path:read()
-    if not content then
-        log:error("Failed to read file: %s - %s", file_path, read_error or "unknown error")
-        return { ok = false, data = nil, error = "Failed to read file: " .. (read_error or "unknown error") }
-    end
-
-    return { ok = true, data = content, error = nil }
-end
-
----Write content to a file
----@param file_path string Path to the file
----@param content string Content to write
----@return {ok: boolean, error: string|nil} Result
-function FileUtils.write_file(file_path, content)
-    local Path = require("plenary.path")
-    local path = Path:new(file_path)
-
-    -- Ensure parent directory exists
-    local parent = path:parent()
-    if not parent:exists() then
-        log:trace("Creating parent directory: %s", parent:absolute())
-        parent:mkdir({ parents = true })
-    end
-
-    local success, write_error = pcall(function()
-        return path:write(content, "w")
-    end)
-    if not success then
-        log:error("Failed to write file: %s - %s", file_path, write_error or "unknown error")
-        return { ok = false, error = "Failed to write file: " .. (write_error or "unknown error") }
-    end
-
-    return { ok = true, error = nil }
-end
-
----Write data to a JSON file
----@param file_path string Path to the file
----@param data table Data to write
----@return {ok: boolean, error: string|nil} Result
-function FileUtils.write_json(file_path, data)
-    -- Fix: Ensure data is a table
-    if type(data) ~= "table" then
-        log:error("Cannot encode non-table data for file: %s", file_path)
-        return { ok = false, error = "Cannot encode non-table data" }
-    end
-
-    local encoded, encode_error = vim.json.encode(data)
-    if not encoded then
-        log:error("Failed to encode JSON for file: %s - %s", file_path, encode_error or "unknown error")
-        return { ok = false, error = "Failed to encode JSON: " .. (encode_error or "unknown error") }
-    end
-
-    return FileUtils.write_file(file_path, encoded)
-end
-
----Delete a file
----@param file_path string Path to the file
----@return {ok: boolean, error: string|nil} Result
-function FileUtils.delete_file(file_path)
-    local Path = require("plenary.path")
-    local path = Path:new(file_path)
-
-    if not path:exists() then
-        log:trace("File to delete does not exist: %s", file_path)
-        return { ok = true, error = nil }
-    end
-
-    local success, err = pcall(function()
-        return path:rm()
-    end)
-    if not success then
-        log:trace("Failed to delete file: %s - %s", file_path, err or "unknown error")
-        return { ok = false, error = "Failed to delete file: " .. (err or "unknown error") }
-    end
-
-    log:trace("Successfully deleted file: %s", file_path)
-    return { ok = true, error = nil }
-end
 
 function Storage.new(opts)
     local self = setmetatable({}, {
@@ -208,7 +95,7 @@ function Storage:_ensure_storage_dirs()
         log:trace("Initializing empty index file: %s", self.index_path)
         -- Initialize with empty object, not array, since we use it as a key-value store
         local empty_index = vim.empty_dict()
-        local result = FileUtils.write_json(self.index_path, empty_index)
+        local result = utils.write_json(self.index_path, empty_index)
         if not result.ok then
             log:error("Failed to initialize index file: %s", result.error)
         end
@@ -219,7 +106,7 @@ function Storage:_ensure_storage_dirs()
     if not summaries_index_path:exists() then
         log:trace("Initializing empty summaries index file: %s", summaries_index_path:absolute())
         local empty_index = vim.empty_dict()
-        local result = FileUtils.write_json(summaries_index_path:absolute(), empty_index)
+        local result = utils.write_json(summaries_index_path:absolute(), empty_index)
         if not result.ok then
             log:error("Failed to initialize summaries index file: %s", result.error)
         end
@@ -231,7 +118,7 @@ end
 function Storage:_save_chat_to_file(chat_data)
     local chat_path = self.chats_dir .. "/" .. chat_data.save_id .. ".json"
     log:trace("Saving chat to file: %s", chat_path)
-    return FileUtils.write_json(chat_path, chat_data)
+    return utils.write_json(chat_path, chat_data)
 end
 
 ---@param chat_data ChatData
@@ -239,7 +126,7 @@ end
 function Storage:_update_index_entry(chat_data)
     log:trace("Updating index entry for chat: %s", chat_data.save_id)
     -- Read current index
-    local index_result = FileUtils.read_json(self.index_path)
+    local index_result = utils.read_json(self.index_path)
     if not index_result.ok then
         return { ok = false, error = "Failed to read index: " .. index_result.error }
     end
@@ -267,14 +154,14 @@ function Storage:_update_index_entry(chat_data)
     }
 
     -- Write updated index
-    return FileUtils.write_json(self.index_path, utils.remove_functions(index))
+    return utils.write_json(self.index_path, utils.remove_functions(index))
 end
 
 ---Load all chats from storage (index only)
 ---@return table<string, ChatIndexData>
 function Storage:get_chats()
     log:trace("Loading chat index")
-    local result = FileUtils.read_json(self.index_path)
+    local result = utils.read_json(self.index_path)
     if not result.ok then
         if result.error:match("does not exist") then
             log:trace("Index file does not exist, initializing storage")
@@ -295,7 +182,7 @@ end
 function Storage:load_chat(id)
     local chat_path = self.chats_dir .. "/" .. id .. ".json"
     log:trace("Loading chat from: %s", chat_path)
-    local result = FileUtils.read_json(chat_path)
+    local result = utils.read_json(chat_path)
 
     if not result.ok then
         if not result.error:match("does not exist") then
@@ -406,13 +293,13 @@ function Storage:delete_chat(id)
     log:debug("Deleting chat: %s", id)
     -- Delete the chat file
     local chat_path = self.chats_dir .. "/" .. id .. ".json"
-    local delete_result = FileUtils.delete_file(chat_path)
+    local delete_result = utils.delete_file(chat_path)
     if not delete_result.ok then
         log:error("Failed to delete chat file: %s", delete_result.error)
     end
 
     -- Remove from index
-    local index_result = FileUtils.read_json(self.index_path)
+    local index_result = utils.read_json(self.index_path)
     if not index_result.ok then
         log:error("Failed to read index for deletion: %s", index_result.error)
         return false
@@ -425,7 +312,7 @@ function Storage:delete_chat(id)
     index[id] = nil
 
     -- Save updated index
-    local write_result = FileUtils.write_json(self.index_path, index)
+    local write_result = utils.write_json(self.index_path, index)
     if not write_result.ok then
         log:error("Failed to update index after deletion: %s", write_result.error)
         return false
@@ -477,7 +364,7 @@ function Storage:rename_chat(save_id, new_title)
     -- Update index
     index[save_id].title = new_title
     index[save_id].updated_at = os.time()
-    local result = FileUtils.write_json(self.index_path, index)
+    local result = utils.write_json(self.index_path, index)
     if not result.ok then
         log:error("Failed to update index with new title: %s", result.error)
         return false
@@ -485,11 +372,11 @@ function Storage:rename_chat(save_id, new_title)
 
     -- Update chat data
     local chat_path = self.chats_dir .. "/" .. save_id .. ".json"
-    local chat_result = FileUtils.read_json(chat_path)
+    local chat_result = utils.read_json(chat_path)
     if chat_result.ok then
         chat_result.data.title = new_title
         chat_result.data.updated_at = os.time()
-        result = FileUtils.write_json(chat_path, chat_result.data)
+        result = utils.write_json(chat_path, chat_result.data)
         if not result.ok then
             log:error("Failed to update chat file with new title: %s", result.error)
             return false
@@ -506,7 +393,7 @@ end
 function Storage:save_summary(summary_data)
     -- Save summary content to markdown file
     local summary_path = self.base_path .. "/summaries/" .. summary_data.summary_id .. ".md"
-    local content_result = FileUtils.write_file(summary_path, summary_data.content)
+    local content_result = utils.write_file(summary_path, summary_data.content)
     if not content_result.ok then
         log:error("Failed to save summary content: %s", content_result.error)
         return false
@@ -533,7 +420,7 @@ function Storage:_update_summaries_index(summary_data)
     local summaries_index_path = self.base_path .. "/summaries_index.json"
 
     -- Read current index
-    local index_result = FileUtils.read_json(summaries_index_path)
+    local index_result = utils.read_json(summaries_index_path)
     local index = index_result.ok and index_result.data or {}
 
     -- Update index entry
@@ -546,7 +433,7 @@ function Storage:_update_summaries_index(summary_data)
     }
 
     -- Write updated index
-    return FileUtils.write_json(summaries_index_path, index)
+    return utils.write_json(summaries_index_path, index)
 end
 
 ---Get all summaries from storage (index only)
@@ -557,7 +444,7 @@ function Storage:get_summaries()
     end
 
     local summaries_index_path = self.base_path .. "/summaries_index.json"
-    local result = FileUtils.read_json(summaries_index_path)
+    local result = utils.read_json(summaries_index_path)
     self.summaries_cache = result.ok and result.data or {}
     return self.summaries_cache
 end
@@ -567,7 +454,7 @@ end
 ---@return string|nil summary content
 function Storage:load_summary(summary_id)
     local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
-    local result = FileUtils.read_file(summary_path)
+    local result = utils.read_file(summary_path)
     return result.ok and result.data or nil
 end
 

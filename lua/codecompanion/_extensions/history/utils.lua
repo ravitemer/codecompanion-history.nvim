@@ -119,4 +119,106 @@ function M.fire(event, opts)
     vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionHistory" .. event, data = opts })
 end
 
+-- File I/O utility functions
+---Read and decode a JSON file
+---@param file_path string Path to the file
+---@return {ok: boolean, data: table|nil, error: string|nil} Result
+function M.read_json(file_path)
+    -- Use read_file to get the content
+    local file_result = M.read_file(file_path)
+    if not file_result.ok then
+        return { ok = false, data = nil, error = file_result.error }
+    end
+
+    -- Parse JSON content
+    local success, data = pcall(vim.json.decode, file_result.data)
+    if not success then
+        return { ok = false, data = nil, error = "Failed to parse JSON: " .. tostring(data) }
+    end
+
+    return { ok = true, data = data, error = nil }
+end
+
+---Read content from a file
+---@param file_path string Path to the file
+---@return {ok: boolean, data: string|nil, error: string|nil} Result
+function M.read_file(file_path)
+    local Path = require("plenary.path")
+    local path = Path:new(file_path)
+
+    if not path:exists() then
+        return { ok = false, data = nil, error = "File does not exist: " .. file_path }
+    end
+
+    local content, read_error = path:read()
+    if not content then
+        return { ok = false, data = nil, error = "Failed to read file: " .. (read_error or "unknown error") }
+    end
+
+    return { ok = true, data = content, error = nil }
+end
+
+---Write content to a file
+---@param file_path string Path to the file
+---@param content string Content to write
+---@return {ok: boolean, error: string|nil} Result
+function M.write_file(file_path, content)
+    local Path = require("plenary.path")
+    local path = Path:new(file_path)
+
+    -- Ensure parent directory exists
+    local parent = path:parent()
+    if not parent:exists() then
+        parent:mkdir({ parents = true })
+    end
+
+    local success, write_error = pcall(function()
+        return path:write(content, "w")
+    end)
+    if not success then
+        return { ok = false, error = "Failed to write file: " .. (write_error or "unknown error") }
+    end
+
+    return { ok = true, error = nil }
+end
+
+---Write data to a JSON file
+---@param file_path string Path to the file
+---@param data table Data to write
+---@return {ok: boolean, error: string|nil} Result
+function M.write_json(file_path, data)
+    -- Ensure data is a table
+    if type(data) ~= "table" then
+        return { ok = false, error = "Cannot encode non-table data" }
+    end
+
+    local encoded, encode_error = vim.json.encode(data)
+    if not encoded then
+        return { ok = false, error = "Failed to encode JSON: " .. (encode_error or "unknown error") }
+    end
+
+    return M.write_file(file_path, encoded)
+end
+
+---Delete a file
+---@param file_path string Path to the file
+---@return {ok: boolean, error: string|nil} Result
+function M.delete_file(file_path)
+    local Path = require("plenary.path")
+    local path = Path:new(file_path)
+
+    if not path:exists() then
+        return { ok = true, error = nil }
+    end
+
+    local success, err = pcall(function()
+        return path:rm()
+    end)
+    if not success then
+        return { ok = false, error = "Failed to delete file: " .. (err or "unknown error") }
+    end
+
+    return { ok = true, error = nil }
+end
+
 return M
