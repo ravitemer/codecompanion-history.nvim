@@ -2,7 +2,7 @@ local config = require("codecompanion.config")
 local log = require("codecompanion._extensions.history.log")
 local utils = require("codecompanion._extensions.history.utils")
 
----@class Playground.UI
+---@class History.UI
 ---@field storage Storage
 ---@field title_generator TitleGenerator
 ---@field default_buf_title string
@@ -13,7 +13,7 @@ local UI = {}
 ---@param opts HistoryOpts
 ---@param storage Storage
 ---@param title_generator TitleGenerator
----@return Playground.UI
+---@return History.UI
 function UI.new(opts, storage, title_generator)
     local self = setmetatable({}, {
         __index = UI,
@@ -26,7 +26,7 @@ function UI.new(opts, storage, title_generator)
     self.picker_keymaps = opts.picker_keymaps
 
     log:trace("Initialized UI with picker: %s", opts.picker)
-    return self --[[@as Playground.UI]]
+    return self --[[@as History.UI]]
 end
 
 ---Update chat title with optional suffix

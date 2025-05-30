@@ -2,7 +2,7 @@
 ---@field opts HistoryOpts
 ---@field storage Storage
 ---@field title_generator TitleGenerator
----@field ui Playground.UI
+---@field ui History.UI
 ---@field should_load_last_chat boolean
 ---@field new fun(opts: HistoryOpts): History
 local History = {}
@@ -328,7 +328,7 @@ function History:_setup_keymaps()
             end,
         },
         ["Generate Summary"] = {
-            modes = form_modes(self.opts.summary.create_summary_keymap),
+            modes = form_modes(self.opts.summary and self.opts.summary.create_summary_keymap or "gcs"),
             description = "Generate Summary for Current Chat",
             callback = function(chat)
                 if not chat then
@@ -338,14 +338,14 @@ function History:_setup_keymaps()
             end,
         },
         ["Browse Summaries"] = {
-            modes = form_modes(self.opts.summary.browse_summaries_keymap),
+            modes = form_modes(self.opts.summary and self.opts.summary.browse_summaries_keymap or "gbs"),
             description = "Browse Saved Summaries",
             callback = function(_)
                 self.ui:open_summaries()
             end,
         },
         ["Preview Summary"] = {
-            modes = form_modes(self.opts.summary.preview_summary_keymap),
+            modes = form_modes(self.opts.summary and self.opts.summary.preview_summary_keymap or "gps"),
             description = "Preview/Edit Summary for Current Chat",
             callback = function(chat)
                 if not chat then
