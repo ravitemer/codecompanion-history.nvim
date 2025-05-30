@@ -1,9 +1,9 @@
 local utils = require("codecompanion._extensions.history.utils")
 
 ---@class PickerConfig
----@field item_type string "chat" or "summary"
----@field items table[] Array of items to display
----@field handlers table Action handlers
+---@field item_type "chat" | "summary"
+---@field items EntryItem[] Array of items to display
+---@field handlers UIHandlers Action handlers
 ---@field keymaps table Picker keymaps
 ---@field current_item_id? string Current item ID for highlighting
 ---@field title string Picker title
@@ -76,7 +76,7 @@ function DefaultPicker:get_item_name_plural()
 end
 
 ---Generic format entry method that dispatches based on item type
----@param entry table Entry from the index
+---@param entry EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:format_entry(entry)
     if self.config.item_type == "chat" then
@@ -87,7 +87,7 @@ function DefaultPicker:format_entry(entry)
 end
 
 ---Format a chat entry for display
----@param entry ChatIndexData Entry from the index
+---@param entry EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:_format_chat_entry(entry)
     local parts = {}
@@ -119,7 +119,7 @@ function DefaultPicker:_format_chat_entry(entry)
 end
 
 ---Format a summary entry for display
----@param entry SummaryIndexData Entry from the index
+---@param entry EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:_format_summary_entry(entry)
     local parts = {}

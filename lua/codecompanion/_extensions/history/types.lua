@@ -96,13 +96,16 @@
 ---@field generated_at number
 ---@field project_root? string
 
-----
+---@class EntryItem : ChatIndexData, SummaryIndexData
+---@field name string Display name for the item
+---@field has_summary boolean Flag indicating if the item has an associated summary (for chats only)
+
 ---@class UIHandlers
----@field on_preview fun(chat_data: ChatData): string[]
----@field on_delete fun(chat_data: ChatData):nil
----@field on_select fun(chat_data: ChatData):nil
+---@field on_preview fun(entry:EntryItem): string[]
+---@field on_delete fun(entry: EntryItem):nil
+---@field on_select fun(entry: EntryItem):nil
 ---@field on_open fun():nil
----@field on_rename fun(chat_data: ChatData, new_title:string): nil
+---@field on_rename fun(entry: EntryItem, new_title:string): nil
 
 ---@class BufferInfo
 ---@field bufnr number

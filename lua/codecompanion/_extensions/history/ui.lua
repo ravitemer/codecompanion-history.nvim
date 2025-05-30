@@ -192,10 +192,10 @@ function UI:_set_buf_title(bufnr, title, attempt)
 end
 
 ---Format items for display based on type
----@param items_data table Raw items from storage
----@param item_type string "chat" or "summary"
+---@param items_data table<string,ChatIndexData> | table<string,SummaryIndexData> Raw items from storage
+---@param item_type "chat" | "summary"
 ---@param storage Storage Storage instance for getting summaries
----@return table[] Formatted items
+---@return EntryItem[] Formatted items
 local function format_items(items_data, item_type, storage)
     local items = {}
 
@@ -234,9 +234,9 @@ local function format_items(items_data, item_type, storage)
 end
 
 ---Generic method to open items (chats or summaries)
----@param item_type string "chat" or "summary"
----@param items_data table Raw items from storage
----@param handlers table Handlers for item actions
+---@param item_type "chat" | "summary"
+---@param items_data table<string,ChatIndexData> | table<string,SummaryIndexData> Raw items from storage
+---@param handlers UIHandlers Handlers for item actions
 ---@param current_item_id? string Current item ID for highlighting
 function UI:_open_items(item_type, items_data, handlers, current_item_id)
     local item_name = item_type == "chat" and "chats" or "summaries"
@@ -288,7 +288,7 @@ function UI:open_saved_chats()
             log:trace("Opening saved chats picker")
             self:open_saved_chats()
         end,
-        ---@param chat_data ChatData
+        ---@param chat_data ChatIndexData
         ---@return string[] lines
         on_preview = function(chat_data)
             -- Load full chat data for preview
@@ -300,12 +300,12 @@ function UI:open_saved_chats()
                 return { "Chat data not available" }
             end
         end,
-        ---@param chat_data ChatData
+        ---@param chat_data ChatIndexData
         on_delete = function(chat_data)
             log:trace("Deleting chat: %s", chat_data.save_id)
             self.storage:delete_chat(chat_data.save_id)
         end,
-        ---@param chat_data ChatData
+        ---@param chat_data ChatIndexData
         ---@param new_title string
         on_rename = function(chat_data, new_title)
             log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
@@ -325,29 +325,30 @@ function UI:open_saved_chats()
                 title = new_title,
             })
         end,
+        ---@param chat_data ChatIndexData
         on_select = function(chat_data)
-            self:_handle_on_select(chat_data)
+            self:_handle_on_select(chat_data.save_id)
         end,
     }, last_chat and last_chat.opts.save_id)
 end
 
----@param chat_data ChatData
-function UI:_handle_on_select(chat_data)
+---@param save_id string
+function UI:_handle_on_select(save_id)
     local codecompanion = require("codecompanion")
-    log:trace("Selected chat: %s", chat_data.save_id)
+    log:trace("Selected chat: %s", save_id)
     local chat_module = require("codecompanion.strategies.chat")
     local opened_chats = chat_module.buf_get_chat()
     local active_chat = codecompanion.last_chat()
 
     for _, data in ipairs(opened_chats) do
-        if data.chat.opts.save_id == chat_data.save_id then
+        if data.chat.opts.save_id == save_id then
             if (active_chat and not active_chat.ui:is_active()) or active_chat ~= data.chat then
                 if active_chat and active_chat.ui:is_active() then
                     active_chat.ui:hide()
                 end
                 data.chat.ui:open()
             else
-                log:trace("Chat already open: %s", chat_data.save_id)
+                log:trace("Chat already open: %s", save_id)
                 vim.notify("Chat already open", vim.log.levels.INFO)
             end
             return
@@ -355,11 +356,11 @@ function UI:_handle_on_select(chat_data)
     end
 
     -- Load full chat data when selecting
-    local full_chat = self.storage:load_chat(chat_data.save_id)
+    local full_chat = self.storage:load_chat(save_id)
     if full_chat then
         self:create_chat(full_chat)
     else
-        log:error("Failed to load chat: %s", chat_data.save_id)
+        log:error("Failed to load chat: %s", save_id)
         vim.notify("Failed to load chat", vim.log.levels.ERROR)
     end
 end
@@ -398,14 +399,7 @@ function UI:open_summaries()
         ---@param summary_data SummaryIndexData
         on_select = function(summary_data)
             log:trace("Selected summary: %s", summary_data.summary_id)
-            -- Load the associated chat for this summary
-            local full_chat = self.storage:load_chat(summary_data.chat_id)
-            if full_chat then
-                self:_handle_on_select(full_chat)
-            else
-                log:error("Failed to load chat for summary: %s", summary_data.chat_id)
-                vim.notify("Failed to load associated chat", vim.log.levels.ERROR)
-            end
+            self:_handle_on_select(summary_data.chat_id)
         end,
     })
 end
