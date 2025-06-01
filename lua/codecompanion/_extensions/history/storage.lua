@@ -337,6 +337,7 @@ function Storage:save_chat(chat)
         schemas = (chat.tools and chat.tools.schemas) or {},
         in_use = (chat.tools and chat.tools.in_use) or {},
         cycle = chat.cycle or 1,
+        title_refresh_count = chat.opts.title_refresh_count or 0,
     }
 
     -- Save chat to file

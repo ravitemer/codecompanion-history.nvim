@@ -309,6 +309,7 @@ function UI:create_chat(chat_data)
         chat.tools.schemas = chat_data.schemas or {}
         chat.tools.in_use = chat_data.in_use or {}
         chat.cycle = chat_data.cycle or 1
+        chat.opts.title_refresh_count = chat_data.title_refresh_count or 0
         log:trace("Successfully created chat with save_id: %s", save_id or "N/A")
         return chat
     end

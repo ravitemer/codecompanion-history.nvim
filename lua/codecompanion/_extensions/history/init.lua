@@ -43,6 +43,10 @@ local default_opts = {
         adapter = nil,
         ---Model for generating titles (defaults to current chat model)
         model = nil,
+        ---Number of user prompts after which to refresh the title (0 to disable)
+        refresh_every_n_prompts = 0,
+        ---Maximum number of times to refresh the title (default: 3)
+        max_refreshes = 3,
     },
     ---On exiting and entering neovim, loads the last chat on opening chat
     continue_last_chat = false,
@@ -170,27 +174,35 @@ function History:_setup_autocommands()
             if not chat then
                 return
             end
-            if self.opts.auto_generate_title and not chat.opts.title then
-                log:debug("Attempting to generate title for chat: %s", chat.opts.save_id)
+
+            -- Handle title generation/refresh
+            local should_generate, is_refresh = self.title_generator:should_generate(chat)
+            if should_generate then
                 self.title_generator:generate(chat, function(generated_title)
                     if generated_title and generated_title ~= "" then
-                        log:trace("Setting generated title: %s", generated_title)
+                        -- Always update buffer title for feedback
                         self.ui:_set_buf_title(chat.bufnr, generated_title)
-                        if generated_title == "Deciding title..." then
-                            return
-                        end
-                        chat.opts.title = generated_title
-                        --save the title to history
-                        if self.opts.auto_save then
-                            self.storage:save_chat(chat)
+
+                        -- Only update chat.opts.title and save for real titles (not feedback)
+                        if generated_title ~= "Deciding title..." and generated_title ~= "Refreshing title..." then
+                            if is_refresh then
+                                chat.opts.title_refresh_count = (chat.opts.title_refresh_count or 0) + 1
+                            end
+
+                            chat.opts.title = generated_title
+
+                            if self.opts.auto_save then
+                                self.storage:save_chat(chat)
+                            end
                         end
                     else
-                        local title = self:_get_title(chat)
-                        log:trace("Using default title: %s", title)
-                        self.ui:_set_buf_title(chat.bufnr, title)
+                        -- Fallback to default title when generation fails
+                        local default_title = self:_get_title(chat)
+                        self.ui:_set_buf_title(chat.bufnr, default_title)
                     end
-                end)
+                end, is_refresh)
             end
+
             if self.opts.auto_save then
                 self.storage:save_chat(chat)
             end
