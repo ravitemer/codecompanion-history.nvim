@@ -107,8 +107,14 @@ require("codecompanion").setup({
                 -- Title generation
                 auto_generate_title = true,
                 title_generation_opts = {
-                    adapter = nil, -- defaults to current chat adapter
-                    model = nil, -- defaults to current chat model
+                    ---Adapter for generating titles (defaults to current chat adapter) 
+                    adapter = nil, -- "copilot"
+                    ---Model for generating titles (defaults to current chat model)
+                    model = nil, -- "gpt-4o"
+                    ---Number of user prompts after which to refresh the title (0 to disable)
+                    refresh_every_n_prompts = 0, -- e.g., 3 to refresh after every 3rd user prompt
+                    ---Maximum number of times to refresh the title (default: 3)
+                    max_refreshes = 3,
                 },
                 
                 -- Summary system
@@ -147,6 +153,7 @@ require("codecompanion").setup({
 
 - `:CodeCompanionHistory` - Open the history browser
 - `:CodeCompanionSummaries` - Browse all summaries
+
 
 #### ⌨️ Chat Buffer Keymaps
 
@@ -196,6 +203,24 @@ When you press `gps` on a chat with a summary:
 - Automatically updates summary storage
 
 > Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple items can be selected for deletion using picker's multi-select feature (press `<Tab>`).
+
+#### 🔄 Title Refresh Feature
+
+The extension can automatically refresh chat titles as conversations evolve:
+
+- **`refresh_every_n_prompts`**: Set to refresh the title after every N user prompts (e.g., 3 means refresh after the 3rd, 6th, 9th user message)
+- **`max_refreshes`**: Limits how many times a title can be refreshed to avoid excessive API calls
+- When refreshing, the system considers recent conversation context (both user and assistant messages) and the original title
+- Individual messages are truncated at 1000 characters with a `[truncated]` indicator
+- Total conversation context is limited to 10,000 characters with a `[conversation truncated]` indicator
+
+Example configuration for title refresh:
+```lua
+title_generation_opts = {
+    refresh_every_n_prompts = 3, -- Refresh after every 3rd user prompt
+    max_refreshes = 10,           -- Allow up to 10 refreshes per chat
+}
+```
 
 #### 🔧 API
 
