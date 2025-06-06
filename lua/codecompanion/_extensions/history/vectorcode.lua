@@ -21,6 +21,8 @@ end
 ---@class CodeCompanion.History.VectorCode
 local M = {}
 
+--- Vectorise the given file into the collection managed by VectorCode.
+--- If `path` is empty, it'll attempt to index all existing memories.
 ---@param path string?
 function M.vectorise(path)
     local summary_dir = get_summary_dir()
@@ -65,7 +67,7 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
                         keywords = {
                             type = "array",
                             items = { type = "string" },
-                            description = "Keywords used to search for relevant memories. Include words with similar meanings to improve the search.",
+                            description = "A non-empty list of keywords used to search for relevant memories. Include words with similar meanings to improve the search.",
                         },
                         count = {
                             type = "integer",

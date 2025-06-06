@@ -257,6 +257,13 @@ local summary_content = history.load_summary("some_save_id")
 history.preview_summary() -- opens summary for editing
 ```
 
+## The `@memory` tool
+
+If you have installed [VectorCode](https://github.com/Davidyz/VectorCode), this
+plugin will use VectorCode to create an index for your chat summaries and create
+a tool called `@memory`. This tool gives the LLM the ability to search for
+(the summary of) previous chats so that you can refer to them in a new chat.
+
 ## ⚙️ How It Works
 
 
