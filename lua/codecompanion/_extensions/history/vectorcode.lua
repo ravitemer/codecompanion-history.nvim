@@ -4,8 +4,9 @@
 local ok, vectorcode_jobrunner = pcall(require, "vectorcode.jobrunner.cmd")
 local log = require("codecompanion._extensions.history.log")
 if not ok then
-    log:error("VectorCode is not installed.")
-    return
+    local e = "VectorCode is not installed."
+    log:error(e)
+    error(e)
 end
 
 ---@return string?

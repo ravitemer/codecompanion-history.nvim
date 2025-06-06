@@ -9,15 +9,15 @@ local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
 
+---@type boolean?, CodeCompanion.History.VectorCode?
 local has_vectorcode, vectorcode = nil, nil
 
----@return CodeCompanion.History.VectorCode?
+---@return boolean
 local function get_vectorcode()
     if has_vectorcode == nil then
         has_vectorcode, vectorcode = pcall(require, "codecompanion._extensions.history.vectorcode")
     end
-    ---@type CodeCompanion.History.VectorCode?
-    return vectorcode
+    return has_vectorcode
 end
 
 ---@type HistoryOpts
@@ -416,7 +416,7 @@ return {
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
         end
-        if vectorcode or (get_vectorcode() and vectorcode) then
+        if get_vectorcode() and type(vectorcode) == "table" then
             local cc_config = require("codecompanion.config").config
             cc_config.strategies.chat.tools["memory"] = {
                 description = "Search from previous conversations saved in codecompanion-history.",
