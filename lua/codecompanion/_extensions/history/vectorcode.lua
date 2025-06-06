@@ -1,4 +1,5 @@
 ---@module "vectorcode"
+---@module "codecompanion"
 
 local ok, vectorcode_jobrunner = pcall(require, "vectorcode.jobrunner.cmd")
 local log = require("codecompanion._extensions.history.log")
@@ -8,7 +9,7 @@ if not ok then
 end
 
 ---@return string?
-local function get_summary_path()
+local function get_summary_dir()
     local history_dir = require("codecompanion._extensions.history").exports.get_location()
     if history_dir == nil then
         log:error("codecompanion-history not fully initialised.")
@@ -22,13 +23,13 @@ local M = {}
 
 ---@param path string?
 function M.vectorise(path)
-    local summary_dir = get_summary_path()
+    local summary_dir = get_summary_dir()
     if summary_dir == nil then
         return
     end
     path = path or vim.fs.joinpath(summary_dir, "*.md")
     vectorcode_jobrunner.run_async(
-        { "--project_root", "--pipe", summary_dir, "vectorise", path },
+        { "vectorise", "--project_root", summary_dir, "--pipe", path },
         function(result, error, code, signal)
             log:info(vim.inspect(result))
             if error and not vim.tbl_isempty(error) then
@@ -46,13 +47,14 @@ end
 ---@param opts VectorCode.CodeCompanion.ToolOpts?
 ---@return CodeCompanion.Agent.Tool|{}
 function M.make_memory_tool(opts)
+    opts = opts or {}
     ---@type CodeCompanion.Agent.Tool|{}
     return {
-        name = "vectorcode_memory",
+        name = "memory",
         schema = {
             type = "function",
             ["function"] = {
-                name = "vectorcode_memory",
+                name = "memory",
                 description = [[
 This tool gives you access to previous conversations.
 Use this tool when users mentioned a previous conversation, or when you feel like you can make use of previous chats.
@@ -84,11 +86,17 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
             ---@param action CodeCompanion.History.MemoryTool.Args
             ---@return nil|{ status: string, data: string }
             function(agent, action, _, cb)
-                if get_summary_path() == nil then
+                if get_summary_dir() == nil then
                     return { status = "error", data = "Failed to find the path to the summaries." }
                 end
-                local args =
-                    { "--project_root", get_summary_path(), "--pipe", "query", "-n", tostring(action.count or 10) }
+                local args = {
+                    "query",
+                    "--project_root",
+                    get_summary_dir(),
+                    "--pipe",
+                    "-n",
+                    tostring(action.count or 10),
+                }
                 vim.list_extend(args, action.keywords)
                 vectorcode_jobrunner.run_async(args, function(result, error, code, signal)
                     if not vim.tbl_isempty(result) then
@@ -105,12 +113,12 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
             ---@param stdout table
             success = function(self, agent, cmd, stdout)
                 ---@type VectorCode.Result[]
-                output = output[1]
+                stdout = stdout[1]
 
-                for i, result in ipairs(output) do
+                for i, result in ipairs(stdout) do
                     local user_message = ""
                     if i == 1 then
-                        user_message = string.format("Retrieved %d memories.", #output)
+                        user_message = string.format("Retrieved %d memories.", #stdout)
                     end
                     agent.chat:add_tool_output(
                         self,

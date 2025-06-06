@@ -91,6 +91,7 @@
 ---@field generated_at number
 ---@field content string
 ---@field project_root? string
+---@field path string?
 
 ---@class SummaryIndexData
 ---@field summary_id string

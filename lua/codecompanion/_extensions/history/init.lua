@@ -9,6 +9,17 @@ local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
 
+local has_vectorcode, vectorcode = nil, nil
+
+---@return CodeCompanion.History.VectorCode?
+local function get_vectorcode()
+    if has_vectorcode == nil then
+        has_vectorcode, vectorcode = pcall(require, "codecompanion._extensions.history.vectorcode")
+    end
+    ---@type CodeCompanion.History.VectorCode?
+    return vectorcode
+end
+
 ---@type HistoryOpts
 local default_opts = {
     ---A name for the chat buffer that tells that this is a auto saving chat
@@ -279,6 +290,11 @@ function History:generate_summary(chat)
             local success = self.storage:save_summary(summary)
             if success then
                 vim.notify("Summary generated successfully", vim.log.levels.INFO)
+                if summary.path then
+                    if has_vectorcode or (get_vectorcode() and has_vectorcode) then
+                        vectorcode.vectorise(summary.path)
+                    end
+                end
                 self.ui:update_chat_title(chat, "(📝)")
             else
                 self.ui:update_chat_title(chat) -- revert to base title
@@ -399,6 +415,13 @@ return {
             log.setup_logging(opts.enable_logging)
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
+        end
+        if vectorcode or (get_vectorcode() and vectorcode) then
+            local cc_config = require("codecompanion.config").config
+            cc_config.strategies.chat.tools["memory"] = {
+                description = "Search from previous conversations saved in codecompanion-history.",
+                callback = vectorcode.make_memory_tool(),
+            }
         end
     end,
     exports = {
