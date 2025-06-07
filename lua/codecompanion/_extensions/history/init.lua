@@ -410,6 +410,7 @@ return {
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
         end
+
         local vectorcode = require("codecompanion._extensions.history.vectorcode")
         if vectorcode.has_vectorcode() then
             vectorcode.vectorcode_exe = opts.memory.vectorcode_exe

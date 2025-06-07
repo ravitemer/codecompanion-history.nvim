@@ -25,13 +25,15 @@ end
 ---@param f F
 ---@return F
 local function check_vectorcode_wrap(f)
-    if not M.has_vectorcode() then
-        local e =
-            "VectorCode is not installed. See https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md#installation"
-        log:error(e)
-        error(e)
+    return function(...)
+        if not M.has_vectorcode() then
+            local e =
+                "VectorCode is not installed. See https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md#installation"
+            log:error(e)
+            error(e)
+        end
+        return f(...)
     end
-    return f
 end
 
 --- Vectorise the given file into the collection managed by VectorCode.
@@ -44,7 +46,7 @@ M.vectorise = check_vectorcode_wrap(function(path)
     end
     path = path or vim.fs.joinpath(summary_dir, "*.md")
     vim.system({ M.vectorcode_exe, "vectorise", "--project_root", summary_dir, "--pipe", path }, {}, function(out)
-        local ok, result = pcall(vim.json.decode, out.stdout)
+        local ok, _ = pcall(vim.json.decode, out.stdout)
         if not ok and out.stderr then
             log:error(out.stderr)
         end
