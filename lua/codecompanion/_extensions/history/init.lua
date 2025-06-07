@@ -9,16 +9,7 @@ local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
 
----@type boolean?, CodeCompanion.History.VectorCode?
-local has_vectorcode, vectorcode = nil, nil
-
----@return boolean
-local function get_vectorcode()
-    if has_vectorcode == nil then
-        has_vectorcode, vectorcode = pcall(require, "codecompanion._extensions.history.vectorcode")
-    end
-    return has_vectorcode
-end
+local vectorcode = require("codecompanion._extensions.history.vectorcode")
 
 ---@type HistoryOpts
 local default_opts = {
@@ -84,6 +75,7 @@ local default_opts = {
     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
     ---Enable detailed logging for history extension
     enable_logging = false,
+    memory = { vectorcode_exe = "vectorcode", tool_opts = { default_num = 10 } },
 }
 
 ---@type History|nil
@@ -291,7 +283,7 @@ function History:generate_summary(chat)
             if success then
                 vim.notify("Summary generated successfully", vim.log.levels.INFO)
                 if summary.path then
-                    if has_vectorcode or (get_vectorcode() and has_vectorcode) then
+                    if vectorcode.has_vectorcode() then
                         vectorcode.vectorise(summary.path)
                     end
                 end
@@ -416,11 +408,12 @@ return {
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
         end
-        if get_vectorcode() and type(vectorcode) == "table" then
+        if vectorcode.has_vectorcode() then
+            vectorcode.vectorcode_exe = opts.memory.vectorcode_exe
             local cc_config = require("codecompanion.config").config
             cc_config.strategies.chat.tools["memory"] = {
                 description = "Search from previous conversations saved in codecompanion-history.",
-                callback = vectorcode.make_memory_tool(),
+                callback = vectorcode.make_memory_tool(opts.memory.tool_opts),
             }
         end
     end,

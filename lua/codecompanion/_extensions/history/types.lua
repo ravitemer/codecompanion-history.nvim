@@ -18,6 +18,19 @@
 ---@field preview_summary_keymap? string | table Keymap to preview/edit summary (default: "gps")
 ---@field generation_opts? SummaryGenerationOpts Options for summary generation
 
+--- The tool-call arguments provided by the LLM
+---@class CodeCompanion.History.MemoryTool.Args
+---@field keywords string[]
+---@field count integer
+
+--- The tool options specified by the user
+---@class CodeCompanion.History.MemoryTool.Opts
+---@field default_num integer
+
+---@class MemoryOpts
+---@field vectorcode_exe string VectorCode executable
+---@field tool_opts CodeCompanion.History.MemoryTool.Opts
+
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat
 ---@field auto_generate_title? boolean  Generate title for the chat
@@ -32,6 +45,7 @@
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table}
 ---@field summary? SummaryOpts Summary-related options
+---@field memory? MemoryOpts
 
 ---@class Chat
 ---@field opts {title:string, title_refresh_count?: number, save_id: string}

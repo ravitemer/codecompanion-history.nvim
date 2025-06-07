@@ -1,13 +1,7 @@
 ---@module "vectorcode"
 ---@module "codecompanion"
 
-local ok, vectorcode_jobrunner = pcall(require, "vectorcode.jobrunner.cmd")
 local log = require("codecompanion._extensions.history.log")
-if not ok then
-    local e = "VectorCode is not installed."
-    log:error(e)
-    error(e)
-end
 
 ---@return string?
 local function get_summary_dir()
@@ -20,37 +14,47 @@ local function get_summary_dir()
 end
 
 ---@class CodeCompanion.History.VectorCode
-local M = {}
+local M = { vectorcode_exe = "vectorcode" }
+
+---@return boolean
+function M.has_vectorcode()
+    return vim.fn.executable(M.vectorcode_exe) == 1
+end
+
+---@generic F: function
+---@param f F
+---@return F
+local function check_vectorcode_wrap(f)
+    if not M.has_vectorcode() then
+        local e =
+            "VectorCode is not installed. See https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md#installation"
+        log:error(e)
+        error(e)
+    end
+    return f
+end
 
 --- Vectorise the given file into the collection managed by VectorCode.
 --- If `path` is empty, it'll attempt to index all existing memories.
 ---@param path string?
-function M.vectorise(path)
+M.vectorise = check_vectorcode_wrap(function(path)
     local summary_dir = get_summary_dir()
     if summary_dir == nil then
         return
     end
     path = path or vim.fs.joinpath(summary_dir, "*.md")
-    vectorcode_jobrunner.run_async(
-        { "vectorise", "--project_root", summary_dir, "--pipe", path },
-        function(result, error, code, signal)
-            log:info(vim.inspect(result))
-            if error and not vim.tbl_isempty(error) then
-                log:error(error)
-            end
-        end,
-        0
-    )
-end
+    vim.system({ M.vectorcode_exe, "vectorise", "--project_root", summary_dir, "--pipe", path }, {}, function(out)
+        local ok, result = pcall(vim.json.decode, out.stdout)
+        if not ok and out.stderr then
+            log:error(out.stderr)
+        end
+    end)
+end)
 
----@class CodeCompanion.History.MemoryTool.Args
----@field keywords string[]
----@field count integer
-
----@param opts VectorCode.CodeCompanion.ToolOpts?
+---@param opts CodeCompanion.History.MemoryTool.Opts
 ---@return CodeCompanion.Agent.Tool|{}
-function M.make_memory_tool(opts)
-    opts = opts or {}
+M.make_memory_tool = check_vectorcode_wrap(function(opts)
+    opts = vim.tbl_deep_extend("force", { default_num = 10 }, opts or {})
     ---@type CodeCompanion.Agent.Tool|{}
     return {
         name = "memory",
@@ -59,9 +63,9 @@ function M.make_memory_tool(opts)
             ["function"] = {
                 name = "memory",
                 description = [[
-This tool gives you access to previous conversations.
-Use this tool when users mentioned a previous conversation, or when you feel like you can make use of previous chats.
-]],
+                This tool gives you access to previous conversations.
+                Use this tool when users mentioned a previous conversation, or when you feel like you can make use of previous chats.
+                ]],
                 parameters = {
                     type = "object",
                     properties = {
@@ -74,16 +78,13 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
                             type = "integer",
                             description = string.format(
                                 "Number of memories to fetch. If the user did not specify, use %d",
-                                opts.default_num or 10
+                                opts.default_num
                             ),
                         },
                     },
                 },
             },
         },
-        system_prompt = function(schema)
-            return ""
-        end,
         cmds = {
             ---@param agent CodeCompanion.Agent
             ---@param action CodeCompanion.History.MemoryTool.Args
@@ -93,6 +94,7 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
                     return { status = "error", data = "Failed to find the path to the summaries." }
                 end
                 local args = {
+                    M.vectorcode_exe,
                     "query",
                     "--project_root",
                     get_summary_dir(),
@@ -101,13 +103,15 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
                     tostring(action.count or 10),
                 }
                 vim.list_extend(args, action.keywords)
-                vectorcode_jobrunner.run_async(args, function(result, error, code, signal)
-                    if not vim.tbl_isempty(result) then
+                cb = vim.schedule_wrap(cb)
+                vim.system(args, {}, function(out)
+                    local ok, result = pcall(vim.json.decode, out.stdout)
+                    if ok then
                         cb({ status = "success", data = result })
                     else
-                        cb({ status = "error", data = error })
+                        cb({ status = "error", data = out.stderr })
                     end
-                end, 0)
+                end)
             end,
         },
         output = {
@@ -118,6 +122,10 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
                 ---@type VectorCode.Result[]
                 stdout = stdout[1]
 
+                if #stdout == 0 then
+                    agent.chat:add_tool_output(self, "The memory tool found 0 memories.")
+                    return
+                end
                 for i, result in ipairs(stdout) do
                     local user_message = ""
                     if i == 1 then
@@ -132,6 +140,6 @@ Use this tool when users mentioned a previous conversation, or when you feel lik
             end,
         },
     }
-end
+end)
 
 return M
