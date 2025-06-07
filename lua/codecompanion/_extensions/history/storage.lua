@@ -393,7 +393,7 @@ end
 ---@return boolean success
 function Storage:save_summary(summary_data)
     -- Save summary content to markdown file
-    local summary_path = self.base_path .. "/summaries/" .. summary_data.summary_id .. ".md"
+    local summary_path = vim.fs.joinpath(self.base_path, "summaries", summary_data.summary_id .. ".md")
     local content_result = utils.write_file(summary_path, summary_data.content)
     if not content_result.ok then
         log:error("Failed to save summary content: %s", content_result.error)
@@ -406,6 +406,9 @@ function Storage:save_summary(summary_data)
     -- Invalidate cache after saving
     self:_invalidate_summaries_cache()
 
+    if index_result.ok then
+        summary_data.path = summary_path
+    end
     return index_result.ok
 end
 

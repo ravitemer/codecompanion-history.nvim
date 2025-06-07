@@ -222,15 +222,15 @@ end
 function TitleGenerator:_make_adapter_request(chat, prompt, callback)
     log:trace("Making adapter request for title generation")
     local opts = self.opts.title_generation_opts or {}
-    local adapter = chat.adapter
-    local settings = chat.settings
+    local adapter = vim.deepcopy(chat.adapter)
+    local settings = vim.deepcopy(chat.settings)
     if opts.adapter then
         adapter = require("codecompanion.adapters").resolve(opts.adapter)
     end
     if opts.model then
         settings = schema.get_default(adapter, { model = opts.model })
     end
-    settings = adapter:map_schema_to_params(settings)
+    settings = vim.deepcopy(adapter:map_schema_to_params(settings))
     settings.opts.stream = false
     local payload = {
         messages = adapter:map_roles({
