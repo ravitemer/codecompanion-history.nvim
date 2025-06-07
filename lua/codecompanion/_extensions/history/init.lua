@@ -10,8 +10,6 @@ local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
 local utils = require("codecompanion._extensions.history.utils")
 
-local vectorcode = require("codecompanion._extensions.history.vectorcode")
-
 ---@type HistoryOpts
 local default_opts = {
     ---A name for the chat buffer that tells that this is a auto saving chat
@@ -291,11 +289,6 @@ function History:generate_summary(chat)
                     summary = summary,
                     path = summary.path,
                 })
-                if self.opts.memory.auto_create_memories_on_summary_generation and summary.path then
-                    if vectorcode.has_vectorcode() then
-                        vectorcode.vectorise(summary.path)
-                    end
-                end
                 self.ui:update_chat_title(chat, "(📝)")
             else
                 self.ui:update_chat_title(chat) -- revert to base title
@@ -417,8 +410,19 @@ return {
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
         end
+        local vectorcode = require("codecompanion._extensions.history.vectorcode")
         if vectorcode.has_vectorcode() then
             vectorcode.vectorcode_exe = opts.memory.vectorcode_exe
+            if opts.memory.auto_create_memories_on_summary_generation then
+                vim.api.nvim_create_autocmd("User", {
+                    pattern = "CodeCompanionHistorySummarySaved",
+                    callback = function(args)
+                        if args.data.path then
+                            vectorcode.vectorise(args.data.path)
+                        end
+                    end,
+                })
+            end
             local cc_config = require("codecompanion.config").config
             cc_config.strategies.chat.tools["memory"] = {
                 description = "Search from previous conversations saved in codecompanion-history.",
