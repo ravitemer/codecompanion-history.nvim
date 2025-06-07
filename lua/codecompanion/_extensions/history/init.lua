@@ -8,6 +8,7 @@
 local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
+local utils = require("codecompanion._extensions.history.utils")
 
 local vectorcode = require("codecompanion._extensions.history.vectorcode")
 
@@ -75,7 +76,11 @@ local default_opts = {
     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
     ---Enable detailed logging for history extension
     enable_logging = false,
-    memory = { vectorcode_exe = "vectorcode", tool_opts = { default_num = 10 } },
+    memory = {
+        auto_create_memories_on_summary_generation = true,
+        vectorcode_exe = "vectorcode",
+        tool_opts = { default_num = 10 },
+    },
 }
 
 ---@type History|nil
@@ -282,7 +287,11 @@ function History:generate_summary(chat)
             local success = self.storage:save_summary(summary)
             if success then
                 vim.notify("Summary generated successfully", vim.log.levels.INFO)
-                if summary.path then
+                utils.fire("SummarySaved", {
+                    summary = summary,
+                    path = summary.path,
+                })
+                if self.opts.memory.auto_create_memories_on_summary_generation and summary.path then
                     if vectorcode.has_vectorcode() then
                         vectorcode.vectorise(summary.path)
                     end

@@ -28,6 +28,7 @@
 ---@field default_num integer
 
 ---@class MemoryOpts
+---@field auto_create_memories_on_summary_generation boolean Should vectorize summaries as they are created
 ---@field vectorcode_exe string VectorCode executable
 ---@field tool_opts CodeCompanion.History.MemoryTool.Opts
 

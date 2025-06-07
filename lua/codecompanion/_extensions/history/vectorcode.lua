@@ -115,6 +115,21 @@ M.make_memory_tool = check_vectorcode_wrap(function(opts)
             end,
         },
         output = {
+            error = function(self, agent, cmd, stderr, stdout)
+                local chat = agent.chat
+                local errors = vim.iter(stderr):flatten():join("\n")
+                log:debug("[Memory Tool] Error output: %s", stderr)
+
+                local error_output = string.format(
+                    [[**Memory Tool**: Ran with an error:
+
+````txt
+%s
+````]],
+                    errors
+                )
+                chat:add_tool_output(self, error_output)
+            end,
             ---@param agent CodeCompanion.Agent
             ---@param cmd table
             ---@param stdout table
@@ -133,7 +148,7 @@ M.make_memory_tool = check_vectorcode_wrap(function(opts)
                     end
                     agent.chat:add_tool_output(
                         self,
-                        string.format("<memory>%s</memory>", result.document),
+                        string.format("<memory>\n%s\n</memory>", result.document),
                         user_message
                     )
                 end
