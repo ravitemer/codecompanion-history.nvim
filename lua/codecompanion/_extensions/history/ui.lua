@@ -157,9 +157,10 @@ local function format_chat_items(chats)
     return items
 end
 
-function UI:open_saved_chats()
+---@param filter_fn? fun(chat_data: ChatIndexData): boolean Optional filter function
+function UI:open_saved_chats(filter_fn)
     log:trace("Opening saved chats browser")
-    local index = self.storage:get_chats()
+    local index = self.storage:get_chats(filter_fn)
     if vim.tbl_isempty(index) then
         log:trace("No saved chats found")
         vim.notify("No chat history found", vim.log.levels.INFO)
@@ -189,7 +190,7 @@ function UI:open_saved_chats()
         :new(items, {
             on_open = function()
                 log:trace("Opening saved chats picker")
-                self:open_saved_chats()
+                self:open_saved_chats(filter_fn)
             end,
             ---@param chat_data ChatData
             ---@return string[] lines

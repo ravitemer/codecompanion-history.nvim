@@ -24,6 +24,7 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 - 🔍 Multiple picker interfaces
 - ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
+- 🏢 **Project-aware filtering**: Filter chats by workspace/project context
 
 The following CodeCompanion features are preserved when saving and restoring chats:
 
@@ -114,6 +115,8 @@ require("codecompanion").setup({
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
                 ---Enable detailed logging for history extension
                 enable_logging = false,
+                ---Optional filter function to control which chats are shown when browsing
+                chat_filter = nil, -- function(chat_data) return boolean end
             }
         }
     }
@@ -168,6 +171,40 @@ title_generation_opts = {
 }
 ```
 
+#### 🏢 Project-Aware Chat Filtering
+
+The extension supports flexible chat filtering to help you focus on relevant conversations:
+
+**Configurable Filtering:**
+```lua
+chat_filter = function(chat_data)
+    return chat_data.cwd == vim.fn.getcwd()
+end
+
+-- Recent chats only (last 7 days)
+chat_filter = function(chat_data)
+    local seven_days_ago = os.time() - (7 * 24 * 60 * 60)
+    return chat_data.updated_at >= seven_days_ago
+end
+```
+
+**Chat Index Data Structure:**
+Each chat index entry (used in filtering) includes the following information:
+```lua
+-- ChatIndexData - lightweight metadata used for browsing and filtering
+{
+    save_id = "1672531200",                 -- Unique chat identifier
+    title = "Debug API endpoint",           -- Chat title (auto-generated or custom)
+    cwd = "/home/user/my-project",          -- Working directory when saved
+    project_root = "/home/user/my-project", -- Detected project root
+    adapter = "openai",                     -- LLM adapter used
+    model = "gpt-4",                        -- Model name
+    updated_at = 1672531200,                -- Unix timestamp of last update
+    message_count = 15,                     -- Number of messages in chat
+    token_estimate = 3420,                  -- Estimated token count
+}
+```
+
 #### 🔧 API
 
 The history extension exports the following functions that can be accessed via `require("codecompanion").extensions.history`:
@@ -176,11 +213,14 @@ The history extension exports the following functions that can be accessed via `
 -- Get the storage location for saved chats
 get_location(): string?
 
--- Save a chat to storage (uses last chat if none provided)
+-- Save a chat to storage (uses last chat if none provided) 
 save_chat(chat?: CodeCompanion.Chat)
 
--- Get metadata for all saved chats
-get_chats(): table<string, ChatIndexData>
+-- Browse chats with custom filter function
+browse_chats(filter_fn?: function(ChatIndexData): boolean)
+
+-- Get metadata for all saved chats with optional filtering
+get_chats(filter_fn?: function(ChatIndexData): boolean): table<string, ChatIndexData>
 
 -- Load a specific chat by its save_id
 load_chat(save_id: string): ChatData?
@@ -192,6 +232,11 @@ delete_chat(save_id: string): boolean
 Example usage:
 ```lua
 local history = require("codecompanion").extensions.history
+
+-- Browse chats with project filter
+history.browse_chats(function(chat_data)
+    return chat_data.project_root == utils.find_project_root()
+end)
 
 -- Get all saved chats metadata
 local chats = history.get_chats()

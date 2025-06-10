@@ -223,15 +223,18 @@ function Storage:_update_index_entry(chat_data)
         adapter = chat_data.adapter or "unknown",
         message_count = message_count,
         token_estimate = token_estimate,
+        cwd = chat_data.cwd,
+        project_root = chat_data.project_root,
     }
 
     -- Write updated index
     return FileUtils.write_json(self.index_path, utils.remove_functions(index))
 end
 
----Load all chats from storage (index only)
+---Load all chats from storage (index only) with optional filtering
+---@param filter_fn? fun(chat_data: ChatIndexData): boolean Optional filter function
 ---@return table<string, ChatIndexData>
-function Storage:get_chats()
+function Storage:get_chats(filter_fn)
     log:trace("Loading chat index")
     local result = FileUtils.read_json(self.index_path)
     if not result.ok then
@@ -245,7 +248,22 @@ function Storage:get_chats()
         end
     end
 
-    return result.data or {}
+    local all_chats = result.data or {}
+
+    -- If no filter provided, return all chats
+    if not filter_fn then
+        return all_chats
+    end
+
+    -- Apply filter and return filtered chats
+    local filtered_chats = {}
+    for id, chat_data in pairs(all_chats) do
+        if filter_fn(chat_data) then
+            filtered_chats[id] = chat_data
+        end
+    end
+
+    return filtered_chats
 end
 
 ---Load a specific chat by ID
@@ -325,6 +343,7 @@ function Storage:save_chat(chat)
 
     log:trace("Saving chat: %s", chat.opts.save_id)
     -- Create chat data object requiring valid types
+    local cwd = vim.fn.getcwd()
     ---@type ChatData
     local chat_data = {
         save_id = chat.opts.save_id,
@@ -338,6 +357,8 @@ function Storage:save_chat(chat)
         in_use = (chat.tools and chat.tools.in_use) or {},
         cycle = chat.cycle or 1,
         title_refresh_count = chat.opts.title_refresh_count or 0,
+        cwd = cwd,
+        project_root = utils.find_project_root(cwd),
     }
 
     -- Save chat to file
@@ -393,11 +414,12 @@ function Storage:delete_chat(id)
     return true
 end
 
----Get the most recently updated chat from storage
+---Get the most recently updated chat from storage with optional filtering
+---@param filter_fn? fun(chat_data: ChatIndexData): boolean Optional filter function
 ---@return ChatData|nil
-function Storage:get_last_chat()
+function Storage:get_last_chat(filter_fn)
     log:debug("Getting most recent chat")
-    local index = self:get_chats()
+    local index = self:get_chats(filter_fn)
     if vim.tbl_isempty(index) then
         return nil
     end

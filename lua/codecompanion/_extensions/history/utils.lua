@@ -108,4 +108,25 @@ function M.fire(event, opts)
     vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionHistory" .. event, data = opts })
 end
 
+---Find project root by looking for common project markers
+---@param start_path? string Starting path (defaults to cwd)
+---@return string project_root
+function M.find_project_root(start_path)
+    start_path = start_path or vim.fn.getcwd()
+
+    local markers = {
+        ".git",
+        "package.json",
+        "Cargo.toml",
+        "pyproject.toml",
+        "go.mod",
+        "pom.xml",
+        ".gitignore",
+        "README.md",
+    }
+
+    local root = vim.fs.root(start_path, markers)
+    return root or start_path -- fallback to start_path if no root found
+end
+
 return M

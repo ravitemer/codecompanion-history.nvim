@@ -60,6 +60,8 @@ local default_opts = {
     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
     ---Enable detailed logging for history extension
     enable_logging = false,
+    ---Filter function for browsing chats (defaults to show all chats)
+    chat_filter = nil,
 }
 
 ---@type History|nil
@@ -86,7 +88,7 @@ end
 
 function History:_create_commands()
     vim.api.nvim_create_user_command("CodeCompanionHistory", function()
-        self.ui:open_saved_chats()
+        self.ui:open_saved_chats(self.opts.chat_filter)
     end, {
         desc = "Open saved chats",
     })
@@ -112,7 +114,7 @@ function History:_setup_autocommands()
             if self.should_load_last_chat then
                 log:trace("Attempting to load last chat")
                 self.should_load_last_chat = false
-                local last_saved_chat = self.storage:get_last_chat()
+                local last_saved_chat = self.storage:get_last_chat(self.opts.chat_filter)
                 if last_saved_chat then
                     log:trace("Restoring last saved chat")
                     chat:close()
@@ -265,7 +267,7 @@ function History:_setup_keymaps()
             keymap = self.opts.keymap,
             description = self.opts.keymap_description,
             callback = function(_)
-                self.ui:open_saved_chats()
+                self.ui:open_saved_chats(self.opts.chat_filter)
             end,
         },
         ["Save Current Chat"] = {
@@ -334,13 +336,23 @@ return {
             history_instance.storage:save_chat(chat)
         end,
 
-        --- Loads chats metadata from the index, you need to use load_chat() to get the actual saved chat data
+        ---Browse chats with custom filter function
+        ---@param filter_fn? fun(chat_data: ChatIndexData): boolean Optional filter function
+        browse_chats = function(filter_fn)
+            if not history_instance then
+                return
+            end
+            history_instance.ui:open_saved_chats(filter_fn)
+        end,
+
+        --- Loads chats metadata from the index with optional filtering
+        ---@param filter_fn? fun(chat_data: ChatIndexData): boolean Optional filter function
         ---@return table<string, ChatIndexData>
-        get_chats = function()
+        get_chats = function(filter_fn)
             if not history_instance then
                 return {}
             end
-            return history_instance.storage:get_chats()
+            return history_instance.storage:get_chats(filter_fn)
         end,
 
         --- Load a specific chat

@@ -27,6 +27,7 @@
 ---@field save_chat_keymap_description? string Description for the save chat keymap (for which-key integration)
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table}
+---@field chat_filter? fun(chat_data: ChatIndexData): boolean Filter function for browsing chats
 
 ---@class Chat
 ---@field opts {title:string, title_refresh_count?: number, save_id: string}
@@ -61,7 +62,8 @@
 ---@field name? string
 ---@field cycle number
 ---@field title_refresh_count? number
----
+---@field cwd string Current working directory when chat was saved
+---@field project_root string Project root directory when chat was saved
 
 ---@class ChatIndexData
 ---@field title string
@@ -71,6 +73,8 @@
 ---@field adapter string
 ---@field message_count number
 ---@field token_estimate number
+---@field cwd string Current working directory when chat was saved
+---@field project_root string Project root directory when chat was saved
 
 ---@class UIHandlers
 ---@field on_preview fun(chat_data: ChatData): string[]
