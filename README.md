@@ -176,6 +176,7 @@ require("codecompanion").setup({
 - `:CodeCompanionSummaries` - Browse all summaries
 
 
+
 #### ⌨️ Chat Buffer Keymaps
 
 **History Management:**
@@ -247,6 +248,24 @@ opts.memory = {
     -- whether to automatically update the index of all existing memories on startup
     -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
     index_on_startup = false,
+}
+```
+
+#### 🔄 Title Refresh Feature
+
+The extension can automatically refresh chat titles as conversations evolve:
+
+- **`refresh_every_n_prompts`**: Set to refresh the title after every N user prompts (e.g., 3 means refresh after the 3rd, 6th, 9th user message)
+- **`max_refreshes`**: Limits how many times a title can be refreshed to avoid excessive API calls
+- When refreshing, the system considers recent conversation context (both user and assistant messages) and the original title
+- Individual messages are truncated at 1000 characters with a `[truncated]` indicator
+- Total conversation context is limited to 10,000 characters with a `[conversation truncated]` indicator
+
+Example configuration for title refresh:
+```lua
+title_generation_opts = {
+    refresh_every_n_prompts = 3, -- Refresh after every 3rd user prompt
+    max_refreshes = 10,           -- Allow up to 10 refreshes per chat
 }
 ```
 

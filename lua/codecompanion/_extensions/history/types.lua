@@ -41,10 +41,12 @@
 ---@field continue_last_chat? boolean On exiting and entering neovim, loads the last chat on opening chat
 ---@field delete_on_clearing_chat? boolean When chat is cleared with `gx` delete the chat from history
 ---@field keymap? string | table Keymap to open saved chats from the chat buffer
+---@field keymap_description? string Description for the history keymap (for which-key integration)
 ---@field picker? Pickers Picker to use (telescope, etc.)
 ---@field enable_logging? boolean Enable logging for history extension
 ---@field auto_save? boolean Automatically save the chat whenever it is updated
 ---@field save_chat_keymap? string | table Keymap to save the current chat
+---@field save_chat_keymap_description? string Description for the save chat keymap (for which-key integration)
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table}
 ---@field summary? SummaryOpts Summary-related options
