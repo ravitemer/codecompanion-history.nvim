@@ -32,6 +32,7 @@
 ---@field vectorcode_exe string VectorCode executable
 ---@field tool_opts CodeCompanion.History.MemoryTool.Opts
 ---@field notify boolean whether to enable notification
+---@field index_on_startup boolean whether to perform indexing when this plugin is loaded.
 
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat

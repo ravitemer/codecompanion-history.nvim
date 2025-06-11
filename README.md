@@ -264,6 +264,23 @@ this plugin will use VectorCode to create an index for your chat summaries and c
 a tool called `@memory`. This tool gives the LLM the ability to search for
 (the summary of) previous chats so that you can refer to them in a new chat.
 
+Available options for the memory submodule:
+```lua
+opts.memory = {
+    auto_create_memories_on_summary_generation = true,
+    -- path to the `vectorcode` executable
+    vectorcode_exe = "vectorcode",
+    tool_opts = { 
+        -- default number of memories to retrieve
+        default_num = 10 
+    },
+    -- whether to enable notification
+    notify = true,
+    -- whether to automatically update the index of all existing memories on startup
+    index_on_startup = false,
+}
+```
+
 ## ⚙️ How It Works
 
 

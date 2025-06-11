@@ -79,6 +79,7 @@ local default_opts = {
         vectorcode_exe = "vectorcode",
         tool_opts = { default_num = 10 },
         notify = true,
+        index_on_startup = false,
     },
 }
 
@@ -414,8 +415,8 @@ return {
 
         local vectorcode = require("codecompanion._extensions.history.vectorcode")
         if vectorcode.has_vectorcode() then
-            vectorcode.opts = vim.tbl_deep_extend("force", vectorcode.opts, opts.summary)
-            if opts.memory.auto_create_memories_on_summary_generation then
+            vectorcode.opts = vim.tbl_deep_extend("force", vectorcode.opts, opts.memory)
+            if vectorcode.opts.auto_create_memories_on_summary_generation then
                 vim.api.nvim_create_autocmd("User", {
                     pattern = "CodeCompanionHistorySummarySaved",
                     callback = function(args)
@@ -424,6 +425,9 @@ return {
                         end
                     end,
                 })
+            end
+            if vectorcode.opts.index_on_startup then
+                vectorcode.vectorise()
             end
             local cc_config = require("codecompanion.config").config
             cc_config.strategies.chat.tools["memory"] = {
