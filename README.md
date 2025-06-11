@@ -29,10 +29,13 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 - **Intelligent content processing**: Extracts meaningful conversation content while filtering noise
 - **Chunked summarization**: Handles large conversations by splitting into manageable chunks
 - **Customizable generation**: Configure adapter, model, and system prompts
-- **Rich metadata**: Includes chat title, project root, and generation timestamps
 - **Summary browsing**: Dedicated browser with `gbs` to explore all summaries
 - **In-editor editing**: Preview and edit summaries with `gps` in main editor
-- **Visual indicators**: Chats with summaries show 📝 icon in history browser
+
+### 🧠 Memory System (@memory tool)
+- **Vector-based search**: Uses VectorCode CLI to index and search through chat summaries
+- **Automatic indexing**: Optionally index summaries as they are generated
+- **Smart integration**: Available as `@memory` tool in new chats when VectorCode is installed
 
 The following CodeCompanion features are preserved when saving and restoring chats:
 
@@ -65,6 +68,7 @@ When restoring a chat:
 
 - Neovim >= 0.8.0
 - [codecompanion.nvim](https://codecompanion.olimorris.dev/)
+- [VectorCode CLI](https://github.com/Davidyz/VectorCode) (optional, for `@memory` tool)
 - [snacks.nvim](https://github.com/folke/snacks.nvim) (optional, for enhanced picker)
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) (optional, for enhanced picker)
 - [fzf-lua](https://github.com/ibhagwan/fzf-lua) (optional, for enhanced picker)
@@ -136,7 +140,24 @@ require("codecompanion").setup({
                     },
                 },
                 
-                -- Other options
+                -- Memory system (requires VectorCode CLI)
+                memory = {
+                    -- Automatically index summaries when they are generated
+                    auto_create_memories_on_summary_generation = true,
+                    -- Path to the VectorCode executable
+                    vectorcode_exe = "vectorcode",
+                    -- Tool configuration
+                    tool_opts = { 
+                        -- Default number of memories to retrieve
+                        default_num = 10 
+                    },
+                    -- Enable notifications for indexing progress
+                    notify = true,
+                    -- Index all existing memories on startup
+                    -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
+                    index_on_startup = false,
+                },
+
                 continue_last_chat = false,
                 delete_on_clearing_chat = false,
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
@@ -204,6 +225,31 @@ When you press `gps` on a chat with a summary:
 
 > Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple items can be selected for deletion using picker's multi-select feature (press `<Tab>`).
 
+## The `@memory` tool
+
+If you have installed the [VectorCode](https://github.com/Davidyz/VectorCode) CLI, 
+this plugin will use VectorCode to create an index for your chat summaries and create
+a tool called `@memory`. This tool gives the LLM the ability to search for
+(the summary of) previous chats so that you can refer to them in a new chat.
+
+Available options for the memory submodule:
+```lua
+opts.memory = {
+    auto_create_memories_on_summary_generation = true,
+    -- path to the `vectorcode` executable
+    vectorcode_exe = "vectorcode",
+    tool_opts = { 
+        -- default number of memories to retrieve
+        default_num = 10 
+    },
+    -- whether to enable notification
+    notify = true,
+    -- whether to automatically update the index of all existing memories on startup
+    -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
+    index_on_startup = false,
+}
+```
+
 #### 🔄 Title Refresh Feature
 
 The extension can automatically refresh chat titles as conversations evolve:
@@ -257,29 +303,6 @@ local summary_content = history.load_summary("some_save_id")
 history.preview_summary() -- opens summary for editing
 ```
 
-## The `@memory` tool
-
-If you have installed the [VectorCode](https://github.com/Davidyz/VectorCode) CLI, 
-this plugin will use VectorCode to create an index for your chat summaries and create
-a tool called `@memory`. This tool gives the LLM the ability to search for
-(the summary of) previous chats so that you can refer to them in a new chat.
-
-Available options for the memory submodule:
-```lua
-opts.memory = {
-    auto_create_memories_on_summary_generation = true,
-    -- path to the `vectorcode` executable
-    vectorcode_exe = "vectorcode",
-    tool_opts = { 
-        -- default number of memories to retrieve
-        default_num = 10 
-    },
-    -- whether to enable notification
-    notify = true,
-    -- whether to automatically update the index of all existing memories on startup
-    index_on_startup = false,
-}
-```
 
 ## ⚙️ How It Works
 
@@ -414,7 +437,9 @@ The extension integrates with CodeCompanion through a robust event-driven archit
 
 ## 🙏 Acknowledgements
 
-Special thanks to [Oli Morris](https://github.com/olimorris) for creating the amazing [CodeCompanion.nvim](https://codecompanion.olimorris.dev) plugin - a highly configurable and powerful coding assistant for Neovim.
+Special thanks to:
+- [Oli Morris](https://github.com/olimorris) for creating the amazing [CodeCompanion.nvim](https://codecompanion.olimorris.dev) plugin - a highly configurable and powerful coding assistant for Neovim.
+- [David](https://github.com/Davidyz) for the awesome [VectorCode](https://github.com/Davidyz/VectorCode) CLI and adding the @memory tool integration. 
 
 ## 📄 License
 
