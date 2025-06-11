@@ -2,13 +2,13 @@
 ---@field opts HistoryOpts
 ---@field storage Storage
 ---@field title_generator TitleGenerator
----@field ui UI
+---@field ui History.UI
 ---@field should_load_last_chat boolean
 ---@field new fun(opts: HistoryOpts): History
-
 local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
+local utils = require("codecompanion._extensions.history.utils")
 
 ---@type HistoryOpts
 local default_opts = {
@@ -52,6 +52,24 @@ local default_opts = {
         ---Maximum number of times to refresh the title (default: 3)
         max_refreshes = 3,
     },
+    ---Summary-related options
+    summary = {
+        ---Keymap to generate summary for current chat
+        create_summary_keymap = "gcs",
+        ---Keymap to browse saved summaries
+        browse_summaries_keymap = "gbs",
+        ---Keymap to preview/edit summary
+        preview_summary_keymap = "gps",
+        ---Summary generation options
+        generation_opts = {
+            adapter = nil, -- defaults to current chat adapter
+            model = nil, -- defaults to current chat model
+            context_size = 90000,
+            include_references = true,
+            include_tool_outputs = true,
+            system_prompt = nil, -- uses default system prompt
+        },
+    },
     ---On exiting and entering neovim, loads the last chat on opening chat
     continue_last_chat = false,
     ---When chat is cleared with `gx` delete the chat from history
@@ -60,11 +78,19 @@ local default_opts = {
     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
     ---Enable detailed logging for history extension
     enable_logging = false,
+    memory = {
+        auto_create_memories_on_summary_generation = true,
+        vectorcode_exe = "vectorcode",
+        tool_opts = { default_num = 10 },
+        notify = true,
+        index_on_startup = false,
+    },
 }
 
 ---@type History|nil
 local history_instance
 
+---@class History
 ---@param opts HistoryOpts
 ---@return History
 function History.new(opts)
@@ -89,6 +115,12 @@ function History:_create_commands()
         self.ui:open_saved_chats()
     end, {
         desc = "Open saved chats",
+    })
+
+    vim.api.nvim_create_user_command("CodeCompanionSummaries", function()
+        self.ui:open_summaries()
+    end, {
+        desc = "Open saved summaries",
     })
 end
 
@@ -120,17 +152,13 @@ function History:_setup_autocommands()
                     return
                 end
             end
-            -- Set initial buffer title if present that we passed while creating a chat from history
-
             -- Set initial buffer title
             if chat.opts.title then
                 log:trace("Setting existing chat title: %s", chat.opts.title)
-                self.ui:_set_buf_title(chat.bufnr, chat.opts.title)
+                self.ui:update_chat_title(chat) -- Use new method
             else
                 --set title to tell that this is a auto saving chat
-                local title = self:_get_title(chat)
-                log:trace("Setting default chat title: %s", title)
-                self.ui:_set_buf_title(chat.bufnr, title)
+                self.ui:update_chat_title(chat) -- Use new method
             end
 
             --Check if custom save_id exists, else generate
@@ -138,6 +166,9 @@ function History:_setup_autocommands()
                 chat.opts.save_id = tostring(os.time())
                 log:trace("Generated new save_id: %s", chat.opts.save_id)
             end
+
+            -- Check for existing summary and update indicator
+            self.ui:check_and_update_summary_indicator(chat)
 
             -- self:_subscribe_to_chat(chat)
         end),
@@ -230,24 +261,70 @@ function History:_setup_autocommands()
                 self.storage:delete_chat(chat.opts.save_id)
             end
 
-            log:trace("Current title: %s", chat.opts.title)
-            local title = self:_get_title(chat)
-            log:trace("Resetting chat title: %s", title)
-            self.ui:_set_buf_title(chat.bufnr, title)
-
             -- Reset chat state
             chat.opts.title = nil
             chat.opts.save_id = tostring(os.time())
             log:trace("Generated new save_id after clear: %s", chat.opts.save_id)
+
+            -- Update title (no summary indicator for new chat)
+            self.ui:update_chat_title(chat)
         end),
     })
 end
 
----@param chat Chat
----@param title? string
----@return string
-function History:_get_title(chat, title)
-    return title and title or (self.opts.default_buf_title .. " " .. chat.id)
+function History:generate_summary(chat)
+    if not self.summary_generator then
+        self.summary_generator = require("codecompanion._extensions.history.summary_generator").new(self.opts)
+    end
+
+    vim.notify("Generating summary...", vim.log.levels.INFO)
+    self.ui:update_chat_title(chat, "(🔄 Generating summary...)")
+
+    self.summary_generator:generate(chat, function(summary, error)
+        if error then
+            self.ui:update_chat_title(chat) -- revert to base title
+            vim.notify("Failed to generate summary: " .. error, vim.log.levels.ERROR)
+            return
+        end
+
+        if summary then
+            local success = self.storage:save_summary(summary)
+            if success then
+                vim.notify("Summary generated successfully", vim.log.levels.INFO)
+                utils.fire("SummarySaved", {
+                    summary = summary,
+                    path = summary.path,
+                })
+                self.ui:update_chat_title(chat, "(📝)")
+            else
+                self.ui:update_chat_title(chat) -- revert to base title
+                vim.notify("Failed to save summary", vim.log.levels.ERROR)
+            end
+        end
+    end)
+end
+
+function History:preview_summary(chat)
+    if not chat.opts.save_id then
+        vim.notify("Cannot preview summary: Chat not saved", vim.log.levels.WARN)
+        return
+    end
+
+    -- Check if summary exists
+    local summaries = self.storage:get_summaries()
+    local summary_data = summaries[chat.opts.save_id]
+
+    if not summary_data then
+        -- No summary exists, offer to generate
+        local choice = vim.fn.confirm("No summary exists for this chat. Generate one?", "&Yes\n&No", 1)
+        if choice == 1 then
+            self:generate_summary(chat)
+        end
+        return
+    end
+
+    -- Open summary for editing
+    self.ui:open_summary_preview(chat)
 end
 
 function History:_setup_keymaps()
@@ -262,14 +339,14 @@ function History:_setup_keymaps()
 
     local keymaps = {
         ["Saved Chats"] = {
-            keymap = self.opts.keymap,
+            modes = form_modes(self.opts.keymap),
             description = self.opts.keymap_description,
             callback = function(_)
                 self.ui:open_saved_chats()
             end,
         },
         ["Save Current Chat"] = {
-            keymap = self.opts.save_chat_keymap,
+            modes = form_modes(self.opts.save_chat_keymap),
             description = self.opts.save_chat_keymap_description,
             callback = function(chat)
                 if not chat then
@@ -279,14 +356,38 @@ function History:_setup_keymaps()
                 log:debug("Saved current chat")
             end,
         },
+        ["Generate Summary"] = {
+            modes = form_modes(self.opts.summary and self.opts.summary.create_summary_keymap or "gcs"),
+            description = "Generate Summary for Current Chat",
+            callback = function(chat)
+                if not chat then
+                    return
+                end
+                self:generate_summary(chat)
+            end,
+        },
+        ["Browse Summaries"] = {
+            modes = form_modes(self.opts.summary and self.opts.summary.browse_summaries_keymap or "gbs"),
+            description = "Browse Saved Summaries",
+            callback = function(_)
+                self.ui:open_summaries()
+            end,
+        },
+        ["Preview Summary"] = {
+            modes = form_modes(self.opts.summary and self.opts.summary.preview_summary_keymap or "gps"),
+            description = "Preview/Edit Summary for Current Chat",
+            callback = function(chat)
+                if not chat then
+                    return
+                end
+                self:preview_summary(chat)
+            end,
+        },
     }
 
-    for name, keymap_config in pairs(keymaps) do
-        require("codecompanion.config").strategies.chat.keymaps[name] = {
-            modes = form_modes(keymap_config.keymap),
-            description = keymap_config.description,
-            callback = keymap_config.callback,
-        }
+    -- Add all keymaps to codecompanion
+    for name, keymap in pairs(keymaps) do
+        require("codecompanion.config").strategies.chat.keymaps[name] = keymap
     end
 end
 
@@ -314,6 +415,29 @@ return {
             log.setup_logging(opts.enable_logging)
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
+        end
+
+        local vectorcode = require("codecompanion._extensions.history.vectorcode")
+        if vectorcode.has_vectorcode() then
+            vectorcode.opts = vim.tbl_deep_extend("force", vectorcode.opts, opts.memory)
+            if vectorcode.opts.auto_create_memories_on_summary_generation then
+                vim.api.nvim_create_autocmd("User", {
+                    pattern = "CodeCompanionHistorySummarySaved",
+                    callback = function(args)
+                        if args.data.path then
+                            vectorcode.vectorise(args.data.path)
+                        end
+                    end,
+                })
+            end
+            if vectorcode.opts.index_on_startup then
+                vectorcode.vectorise()
+            end
+            local cc_config = require("codecompanion.config").config
+            cc_config.strategies.chat.tools["memory"] = {
+                description = "Search from previous conversations saved in codecompanion-history.",
+                callback = vectorcode.make_memory_tool(opts.memory.tool_opts),
+            }
         end
     end,
     exports = {
@@ -361,6 +485,43 @@ return {
                 return false
             end
             return history_instance.storage:delete_chat(save_id)
+        end,
+
+        ---Generate summary for a chat
+        ---@param chat? Chat
+        generate_summary = function(chat)
+            if not history_instance then
+                return
+            end
+            history_instance:generate_summary(chat)
+        end,
+
+        ---Preview/Edit summary for a chat
+        ---@param chat? Chat
+        preview_summary = function(chat)
+            if not history_instance then
+                return
+            end
+            history_instance:preview_summary(chat)
+        end,
+
+        ---Get all summaries
+        ---@return table<string, SummaryIndexData>
+        get_summaries = function()
+            if not history_instance then
+                return {}
+            end
+            return history_instance.storage:get_summaries()
+        end,
+
+        ---Load a specific summary
+        ---@param summary_id string
+        ---@return string?
+        load_summary = function(summary_id)
+            if not history_instance then
+                return nil
+            end
+            return history_instance.storage:load_summary(summary_id)
         end,
     },
     --for testing
