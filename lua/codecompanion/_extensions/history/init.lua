@@ -8,6 +8,7 @@
 local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
+local utils = require("codecompanion._extensions.history.utils")
 
 ---@type HistoryOpts
 local default_opts = {
@@ -73,6 +74,13 @@ local default_opts = {
     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
     ---Enable detailed logging for history extension
     enable_logging = false,
+    memory = {
+        auto_create_memories_on_summary_generation = true,
+        vectorcode_exe = "vectorcode",
+        tool_opts = { default_num = 10 },
+        notify = true,
+        index_on_startup = false,
+    },
 }
 
 ---@type History|nil
@@ -279,6 +287,10 @@ function History:generate_summary(chat)
             local success = self.storage:save_summary(summary)
             if success then
                 vim.notify("Summary generated successfully", vim.log.levels.INFO)
+                utils.fire("SummarySaved", {
+                    summary = summary,
+                    path = summary.path,
+                })
                 self.ui:update_chat_title(chat, "(📝)")
             else
                 self.ui:update_chat_title(chat) -- revert to base title
@@ -399,6 +411,29 @@ return {
             log.setup_logging(opts.enable_logging)
             history_instance = History.new(opts)
             log:debug("History extension setup successfully")
+        end
+
+        local vectorcode = require("codecompanion._extensions.history.vectorcode")
+        if vectorcode.has_vectorcode() then
+            vectorcode.opts = vim.tbl_deep_extend("force", vectorcode.opts, opts.memory)
+            if vectorcode.opts.auto_create_memories_on_summary_generation then
+                vim.api.nvim_create_autocmd("User", {
+                    pattern = "CodeCompanionHistorySummarySaved",
+                    callback = function(args)
+                        if args.data.path then
+                            vectorcode.vectorise(args.data.path)
+                        end
+                    end,
+                })
+            end
+            if vectorcode.opts.index_on_startup then
+                vectorcode.vectorise()
+            end
+            local cc_config = require("codecompanion.config").config
+            cc_config.strategies.chat.tools["memory"] = {
+                description = "Search from previous conversations saved in codecompanion-history.",
+                callback = vectorcode.make_memory_tool(opts.memory.tool_opts),
+            }
         end
     end,
     exports = {

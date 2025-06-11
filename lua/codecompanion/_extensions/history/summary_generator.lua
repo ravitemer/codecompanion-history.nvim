@@ -298,8 +298,8 @@ function SummaryGenerator:_make_adapter_request(chat, system_prompt, user_prompt
     log:trace("Making adapter request for summary generation")
 
     local opts = self.generation_opts
-    local adapter = chat.adapter
-    local settings = chat.settings
+    local adapter = vim.deepcopy(chat.adapter)
+    local settings = vim.deepcopy(chat.settings)
 
     -- Use custom adapter/model if specified
     if opts.adapter then
@@ -309,7 +309,7 @@ function SummaryGenerator:_make_adapter_request(chat, system_prompt, user_prompt
         settings = schema.get_default(adapter, { model = opts.model })
     end
 
-    settings = adapter:map_schema_to_params(settings)
+    settings = vim.deepcopy(adapter:map_schema_to_params(settings))
     settings.opts.stream = false
 
     local payload = {
