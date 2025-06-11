@@ -14,11 +14,19 @@ local function get_summary_dir()
 end
 
 ---@class CodeCompanion.History.VectorCode
-local M = { vectorcode_exe = "vectorcode" }
+local M = {
+    ---@type MemoryOpts|{}
+    opts = {
+        auto_create_memories_on_summary_generation = true,
+        vectorcode_exe = "vectorcode",
+        tool_opts = { default_num = 10 },
+        notify = true,
+    },
+}
 
 ---@return boolean
 function M.has_vectorcode()
-    return vim.fn.executable(M.vectorcode_exe) == 1
+    return vim.fn.executable(M.opts.vectorcode_exe) == 1
 end
 
 ---@generic F: function
@@ -45,9 +53,13 @@ M.vectorise = check_vectorcode_wrap(function(path)
         return
     end
     path = path or vim.fs.joinpath(summary_dir, "*.md")
-    vim.notify(string.format("Indexing %s...", path), vim.log.levels.INFO, { title = "CodeCompanion-History" })
-    vim.system({ M.vectorcode_exe, "vectorise", "--project_root", summary_dir, "--pipe", path }, {}, function(out)
-        vim.notify("Indexing finished!", vim.log.levels.INFO, { title = "CodeCompanion-History" })
+    if M.opts.notify then
+        vim.notify("Indexing summary for the memory tool.", vim.log.levels.INFO, { title = "CodeCompanion-History" })
+    end
+    vim.system({ M.opts.vectorcode_exe, "vectorise", "--project_root", summary_dir, "--pipe", path }, {}, function(out)
+        if M.opts.notify then
+            vim.notify("Indexing finished!", vim.log.levels.INFO, { title = "CodeCompanion-History" })
+        end
         local ok, _ = pcall(vim.json.decode, out.stdout)
         if not ok and out.stderr then
             log:error(out.stderr)
@@ -98,7 +110,7 @@ M.make_memory_tool = check_vectorcode_wrap(function(opts)
                     return { status = "error", data = "Failed to find the path to the summaries." }
                 end
                 local args = {
-                    M.vectorcode_exe,
+                    M.opts.vectorcode_exe,
                     "query",
                     "--project_root",
                     get_summary_dir(),

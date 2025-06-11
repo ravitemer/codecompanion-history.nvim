@@ -78,6 +78,7 @@ local default_opts = {
         auto_create_memories_on_summary_generation = true,
         vectorcode_exe = "vectorcode",
         tool_opts = { default_num = 10 },
+        notify = true,
     },
 }
 
@@ -413,7 +414,7 @@ return {
 
         local vectorcode = require("codecompanion._extensions.history.vectorcode")
         if vectorcode.has_vectorcode() then
-            vectorcode.vectorcode_exe = opts.memory.vectorcode_exe
+            vectorcode.opts = vim.tbl_deep_extend("force", vectorcode.opts, opts.summary)
             if opts.memory.auto_create_memories_on_summary_generation then
                 vim.api.nvim_create_autocmd("User", {
                     pattern = "CodeCompanionHistorySummarySaved",

@@ -31,6 +31,7 @@
 ---@field auto_create_memories_on_summary_generation boolean Should vectorize summaries as they are created
 ---@field vectorcode_exe string VectorCode executable
 ---@field tool_opts CodeCompanion.History.MemoryTool.Opts
+---@field notify boolean whether to enable notification
 
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat
