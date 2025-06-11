@@ -340,14 +340,14 @@ function History:_setup_keymaps()
     local keymaps = {
         ["Saved Chats"] = {
             modes = form_modes(self.opts.keymap),
-            description = "Browse Saved Chats",
+            description = self.opts.keymap_description,
             callback = function(_)
                 self.ui:open_saved_chats()
             end,
         },
         ["Save Current Chat"] = {
             modes = form_modes(self.opts.save_chat_keymap),
-            description = "Save current chat",
+            description = self.opts.save_chat_keymap_description,
             callback = function(chat)
                 if not chat then
                     return
