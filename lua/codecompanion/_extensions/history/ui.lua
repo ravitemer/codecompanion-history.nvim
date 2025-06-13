@@ -445,8 +445,9 @@ function UI:create_chat(chat_data)
             -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
             -- ignore_system_prompt = true,
         })
-        chat.refs = chat_data.refs or {}
-        chat.references:render()
+        for _, ref in ipairs(chat_data.refs or {}) do
+            chat.references:add(ref)
+        end
         chat.tools.schemas = chat_data.schemas or {}
         chat.tools.in_use = chat_data.in_use or {}
         chat.cycle = chat_data.cycle or 1
