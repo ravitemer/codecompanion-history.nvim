@@ -482,4 +482,52 @@ function Storage:rename_chat(save_id, new_title)
     return true
 end
 
+---Duplicate a chat in storage with a new title
+---@param original_id string The original chat ID to duplicate
+---@param new_title? string Optional new title (defaults to "Title (1)")
+---@return string|nil new_save_id The new chat's save_id if successful
+function Storage:duplicate_chat(original_id, new_title)
+    log:trace("Duplicating chat: %s", original_id)
+
+    -- Load original chat
+    local original_chat = self:load_chat(original_id)
+    if not original_chat then
+        log:error("Cannot duplicate: original chat not found: %s", original_id)
+        return nil
+    end
+
+    -- Generate new save_id
+    local new_save_id = tostring(os.time() * 1000 + math.random(1000))
+
+    -- Generate appropriate title if not provided
+    if not new_title then
+        local original_title = original_chat.title or "Untitled"
+        new_title = original_title .. " (1)"
+    end
+
+    -- Create duplicated chat data
+    local duplicated_chat = vim.deepcopy(original_chat)
+    duplicated_chat.save_id = new_save_id
+    duplicated_chat.title = new_title
+    duplicated_chat.updated_at = os.time()
+    duplicated_chat.title_refresh_count = 0 -- Reset refresh count for new chat
+
+    -- Save duplicated chat
+    local save_result = self:_save_chat_to_file(duplicated_chat)
+    if not save_result.ok then
+        log:error("Failed to save duplicated chat: %s", save_result.error)
+        return nil
+    end
+
+    -- Update index
+    local index_result = self:_update_index_entry(duplicated_chat)
+    if not index_result.ok then
+        log:error("Failed to update index for duplicated chat: %s", index_result.error)
+        return nil
+    end
+
+    log:debug("Successfully duplicated chat %s -> %s", original_id, new_save_id)
+    return new_save_id
+end
+
 return Storage

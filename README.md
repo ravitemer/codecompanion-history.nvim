@@ -25,6 +25,7 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 - ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
 - 🏢 **Project-aware filtering**: Filter chats by workspace/project context
+- 📋 **Chat duplication**: Easily duplicate chats to create variations or backups
 
 The following CodeCompanion features are preserved when saving and restoring chats:
 
@@ -95,6 +96,12 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface (auto resolved to a valid picker)
                 picker = "telescope", --- ("telescope", "snacks", "fzf-lua", or "default") 
+                -- Customize picker keymaps (optional)
+                picker_keymaps = {
+                    rename = { n = "r", i = "<M-r>" },
+                    delete = { n = "d", i = "<M-d>" },
+                    duplicate = { n = "<C-y>", i = "<C-y>" },
+                },
                 ---Automatically generate titles for new chats
                 auto_generate_title = true,
                 title_generation_opts = {
@@ -147,11 +154,13 @@ Actions in history browser:
 - Normal mode:
   - `d` - Delete selected chat(s)
   - `r` - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 - Insert mode:
   - `<M-d>` (Alt+d) - Delete selected chat(s)
   - `<M-r>` (Alt+r) - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 
-> Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple chats can be selected for deletion using picker's multi-select feature (press `<Tab>`).
+> Note: Delete, rename, and duplicate actions are only available in telescope, snacks, and fzf-lua pickers. Multiple chats can be selected for deletion using picker's multi-select feature (press `<Tab>`). Duplication is limited to one chat at a time.
 
 #### 🔄 Title Refresh Feature
 
@@ -227,6 +236,9 @@ load_chat(save_id: string): ChatData?
 
 -- Delete a chat by its save_id
 delete_chat(save_id: string): boolean
+
+-- Duplicate a chat by its save_id
+duplicate_chat(save_id: string, new_title?: string): string?
 ```
 
 Example usage:
@@ -246,6 +258,12 @@ local chat_data = history.load_chat("some_save_id")
 
 -- Delete a chat
 history.delete_chat("some_save_id")
+
+-- Duplicate a chat with custom title
+local new_save_id = history.duplicate_chat("some_save_id", "My Custom Copy")
+
+-- Duplicate a chat with auto-generated title (appends "(1)")
+local new_save_id = history.duplicate_chat("some_save_id")
 ```
 
 ## ⚙️ How It Works

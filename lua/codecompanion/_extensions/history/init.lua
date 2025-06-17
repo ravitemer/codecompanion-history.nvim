@@ -39,6 +39,10 @@ local default_opts = {
             n = "d",
             i = "<M-d>",
         },
+        duplicate = {
+            n = "<C-y>",
+            i = "<C-y>",
+        },
     },
     ---Automatically generate titles for new chats
     auto_generate_title = true,
@@ -373,6 +377,17 @@ return {
                 return false
             end
             return history_instance.storage:delete_chat(save_id)
+        end,
+
+        ---Duplicate a chat
+        ---@param save_id string ID from chat.opts.save_id to duplicate
+        ---@param new_title? string Optional new title (defaults to "Title (1)")
+        ---@return string|nil new_save_id The new chat's save_id if successful
+        duplicate_chat = function(save_id, new_title)
+            if not history_instance then
+                return nil
+            end
+            return history_instance.storage:duplicate_chat(save_id, new_title)
         end,
     },
     --for testing

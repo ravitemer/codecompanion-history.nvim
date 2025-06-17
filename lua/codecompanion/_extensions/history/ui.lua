@@ -230,6 +230,30 @@ function UI:open_saved_chats(filter_fn)
                 })
             end,
             ---@param chat_data ChatData
+            on_duplicate = function(chat_data)
+                log:trace("Duplicating chat: %s", chat_data.save_id)
+
+                -- Prompt for new title with current title as default
+                vim.ui.input({
+                    prompt = "Duplicate as: ",
+                    default = chat_data.title or "",
+                }, function(new_title)
+                    -- If cancelled or empty, append (1) to original title
+                    if not new_title or vim.trim(new_title) == "" then
+                        local original_title = chat_data.title or "Untitled"
+                        new_title = original_title .. " (1)"
+                    end
+
+                    local new_save_id = self.storage:duplicate_chat(chat_data.save_id, new_title)
+                    if new_save_id then
+                        vim.notify("Chat duplicated successfully", vim.log.levels.INFO)
+                        self:open_saved_chats(filter_fn)
+                    else
+                        vim.notify("Failed to duplicate chat", vim.log.levels.ERROR)
+                    end
+                end)
+            end,
+            ---@param chat_data ChatData
             on_select = function(chat_data)
                 log:trace("Selected chat: %s", chat_data.save_id)
                 local chat_module = require("codecompanion.strategies.chat")

@@ -55,6 +55,8 @@ end
 
 ---@param current_save_id? string
 function DefaultPicker:browse(current_save_id)
+    -- Note: Default picker using vim.ui.select doesn't support keymaps
+    -- For duplicate, rename, and delete actions, use telescope, snacks, or fzf-lua pickers
     vim.ui.select(self.chats, {
         prompt = "Saved Chats",
         format_item = function(item)

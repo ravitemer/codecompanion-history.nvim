@@ -87,6 +87,18 @@ function FzfluaPicker:browse(current_save_id)
                 end
                 self.handlers.on_open()
             end,
+            -- Duplicate chat
+            [conv(self.keymaps.duplicate.i)] = function(selections)
+                if #selections == 0 then
+                    return
+                end
+                if #selections > 1 then
+                    return vim.notify("Can duplicate only one chat at a time", vim.log.levels.WARN)
+                end
+
+                local selection = decode(selections[1])
+                self.handlers.on_duplicate(selection)
+            end,
         },
         previewer = {
             _ctor = function()

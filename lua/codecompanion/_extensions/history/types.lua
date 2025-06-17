@@ -26,7 +26,7 @@
 ---@field save_chat_keymap? string | table Keymap to save the current chat
 ---@field save_chat_keymap_description? string Description for the save chat keymap (for which-key integration)
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
----@field picker_keymaps? {rename?: table, delete?: table}
+---@field picker_keymaps? {rename?: table, delete?: table, duplicate?: table}
 ---@field chat_filter? fun(chat_data: ChatIndexData): boolean Filter function for browsing chats
 
 ---@class Chat
@@ -82,6 +82,7 @@
 ---@field on_select fun(chat_data: ChatData):nil
 ---@field on_open fun():nil
 ---@field on_rename fun(chat_data: ChatData, new_title:string): nil
+---@field on_duplicate fun(chat_data: ChatData): nil
 
 ---@class BufferInfo
 ---@field bufnr number

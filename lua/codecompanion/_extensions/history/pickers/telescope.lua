@@ -95,6 +95,16 @@ function TelescopePicker:browse(current_save_id)
                     end)
                 end
 
+                -- Function to handle duplication
+                local duplicate_selection = function()
+                    local selection = action_state.get_selected_entry()
+                    if not selection then
+                        return
+                    end
+                    actions.close(prompt_bufnr)
+                    self.handlers.on_duplicate(selection.value)
+                end
+
                 -- Multi-select toggle with <Tab>
                 actions.select_default:replace(function()
                     local selection = action_state.get_selected_entry()
@@ -123,6 +133,18 @@ function TelescopePicker:browse(current_save_id)
                     nowait = true,
                 })
                 vim.keymap.set({ "i" }, self.keymaps.rename.i, rename_selection, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+
+                -- Duplicate chat (normal mode and <C-y> in insert mode)
+                vim.keymap.set({ "n" }, self.keymaps.duplicate.n, duplicate_selection, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+                vim.keymap.set({ "i" }, self.keymaps.duplicate.i, duplicate_selection, {
                     buffer = prompt_bufnr,
                     silent = true,
                     nowait = true,

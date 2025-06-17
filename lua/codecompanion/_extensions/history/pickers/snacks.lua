@@ -84,6 +84,15 @@ function SnacksPicker:browse(current_save_id)
                 picker:close()
                 self.handlers.on_open()
             end,
+            duplicate_chat = function(picker)
+                local selections = picker:selected({ fallback = true })
+                if #selections ~= 1 then
+                    return vim.notify("Can duplicate only one chat at a time", vim.log.levels.WARN)
+                end
+                local selection = selections[1]
+                picker:close()
+                self.handlers.on_duplicate(selection)
+            end,
         },
 
         win = {
@@ -93,6 +102,8 @@ function SnacksPicker:browse(current_save_id)
                     [self.keymaps.delete.i] = "delete_chat",
                     [self.keymaps.rename.n] = "rename_chat",
                     [self.keymaps.rename.i] = "rename_chat",
+                    [self.keymaps.duplicate.n] = "duplicate_chat",
+                    [self.keymaps.duplicate.i] = "duplicate_chat",
                 },
             },
             list = {
@@ -101,6 +112,8 @@ function SnacksPicker:browse(current_save_id)
                     [self.keymaps.delete.i] = "delete_chat",
                     [self.keymaps.rename.n] = "rename_chat",
                     [self.keymaps.rename.i] = "rename_chat",
+                    [self.keymaps.duplicate.n] = "duplicate_chat",
+                    [self.keymaps.duplicate.i] = "duplicate_chat",
                 },
             },
         },
