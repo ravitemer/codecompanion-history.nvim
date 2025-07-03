@@ -1,16 +1,28 @@
----@class History
----@field opts HistoryOpts
----@field storage Storage
----@field title_generator TitleGenerator
----@field ui History.UI
+---@class CodeCompanion.History
+---@field opts CodeCompanion.History.Opts
+---@field storage CodeCompanion.History.Storage
+---@field title_generator CodeCompanion.History.TitleGenerator
+---@field ui CodeCompanion.History.UI
 ---@field should_load_last_chat boolean
----@field new fun(opts: HistoryOpts): History
+---@field new fun(opts: CodeCompanion.History.Opts): CodeCompanion.History
 local History = {}
 local log = require("codecompanion._extensions.history.log")
 local pickers = require("codecompanion._extensions.history.pickers")
 local utils = require("codecompanion._extensions.history.utils")
 
----@type HistoryOpts
+---Monkey patch to save some extra fields in the Chat instance
+---@class CodeCompanion.History.ChatArgs : CodeCompanion.ChatArgs
+---@field save_id string?
+---@field title string?
+---@field title_refresh_count integer? Number of times the title has been refreshed
+
+---@class CodeCompanion.History.Chat : CodeCompanion.Chat
+---@field opts CodeCompanion.History.ChatArgs
+
+---@type CodeCompanion.History|nil
+local history_instance
+
+---@type CodeCompanion.History.Opts
 local default_opts = {
     ---A name for the chat buffer that tells that this is a auto saving chat
     default_buf_title = "[CodeCompanion] " .. " ",
@@ -28,7 +40,7 @@ local default_opts = {
     ---Number of days after which chats are automatically deleted (0 to disable)
     expiration_days = 0,
     ---Valid Picker interface ("telescope", "snacks", "fzf-lua", or "default")
-    ---@type Pickers
+    ---@type CodeCompanion.History.Pickers
     picker = pickers.history,
     picker_keymaps = {
         rename = {
@@ -87,12 +99,12 @@ local default_opts = {
     },
 }
 
----@type History|nil
+---@type CodeCompanion.History|nil
 local history_instance
 
----@class History
----@param opts HistoryOpts
----@return History
+---@class CodeCompanion.History
+---@param opts CodeCompanion.History.Opts
+---@return CodeCompanion.History
 function History.new(opts)
     local history = setmetatable({}, {
         __index = History,
@@ -107,7 +119,7 @@ function History.new(opts)
     history:_create_commands()
     history:_setup_autocommands()
     history:_setup_keymaps()
-    return history --[[@as History]]
+    return history --[[@as CodeCompanion.History]]
 end
 
 function History:_create_commands()
@@ -139,7 +151,7 @@ function History:_setup_autocommands()
             log:trace("Chat created event received")
             local chat_module = require("codecompanion.strategies.chat")
             local bufnr = opts.data.bufnr
-            local chat = chat_module.buf_get_chat(bufnr)
+            local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
 
             if self.should_load_last_chat then
                 log:trace("Attempting to load last chat")
@@ -190,7 +202,7 @@ function History:_setup_autocommands()
                 if not bufnr then
                     return log:trace("No bufnr found in event data")
                 end
-                local chat = chat_module.buf_get_chat(bufnr)
+                local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
                 if chat then
                     self.storage:save_chat(chat)
                 end
@@ -205,7 +217,7 @@ function History:_setup_autocommands()
             log:trace("Chat submitted event received")
             local chat_module = require("codecompanion.strategies.chat")
             local bufnr = opts.data.bufnr
-            local chat = chat_module.buf_get_chat(bufnr)
+            local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
             if not chat then
                 return
             end
@@ -231,9 +243,7 @@ function History:_setup_autocommands()
                             end
                         end
                     else
-                        -- Fallback to default title when generation fails
-                        local default_title = self:_get_title(chat)
-                        self.ui:_set_buf_title(chat.bufnr, default_title)
+                        self.ui:update_chat_title(chat)
                     end
                 end, is_refresh)
             end
@@ -252,7 +262,7 @@ function History:_setup_autocommands()
 
             local chat_module = require("codecompanion.strategies.chat")
             local bufnr = opts.data.bufnr
-            local chat = chat_module.buf_get_chat(bufnr)
+            local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
             if not chat then
                 return
             end
@@ -272,7 +282,12 @@ function History:_setup_autocommands()
     })
 end
 
+---@param chat? CodeCompanion.History.Chat
 function History:generate_summary(chat)
+    if not chat then
+        vim.notify("No chat provided for summary generation", vim.log.levels.WARN)
+        return
+    end
     if not self.summary_generator then
         self.summary_generator = require("codecompanion._extensions.history.summary_generator").new(self.opts)
     end
@@ -407,7 +422,7 @@ end
 
 ---@type CodeCompanion.Extension
 return {
-    ---@param opts HistoryOpts
+    ---@param opts CodeCompanion.History.Opts
     setup = function(opts)
         if not history_instance then
             -- Initialize logging first
@@ -450,7 +465,7 @@ return {
             return history_instance.storage:get_location()
         end,
         ---Save a chat to storage falling back to the last chat if none is provided
-        ---@param chat? Chat
+        ---@param chat? CodeCompanion.History.Chat
         save_chat = function(chat)
             if not history_instance then
                 return
@@ -459,7 +474,7 @@ return {
         end,
 
         --- Loads chats metadata from the index, you need to use load_chat() to get the actual saved chat data
-        ---@return table<string, ChatIndexData>
+        ---@return table<string, CodeCompanion.History.ChatIndexData>
         get_chats = function()
             if not history_instance then
                 return {}
@@ -469,7 +484,7 @@ return {
 
         --- Load a specific chat
         ---@param save_id string ID from chat.opts.save_id to retreive the chat
-        ---@return ChatData?
+        ---@return CodeCompanion.History.ChatData?
         load_chat = function(save_id)
             if not history_instance then
                 return
@@ -488,7 +503,7 @@ return {
         end,
 
         ---Generate summary for a chat
-        ---@param chat? Chat
+        ---@param chat? CodeCompanion.History.Chat
         generate_summary = function(chat)
             if not history_instance then
                 return
@@ -497,7 +512,7 @@ return {
         end,
 
         ---Preview/Edit summary for a chat
-        ---@param chat? Chat
+        ---@param chat? CodeCompanion.History.Chat
         preview_summary = function(chat)
             if not history_instance then
                 return
@@ -506,7 +521,7 @@ return {
         end,
 
         ---Get all summaries
-        ---@return table<string, SummaryIndexData>
+        ---@return table<string, CodeCompanion.History.SummaryIndexData>
         get_summaries = function()
             if not history_instance then
                 return {}

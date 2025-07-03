@@ -1,6 +1,7 @@
 local M = {}
 
--- Wrap codecompanion log  with prefix that respects enable_logging
+---Wrap codecompanion log  with prefix that respects enable_logging
+---@param enable_logging boolean
 function M.setup_logging(enable_logging)
     local codecompanion_log = require("codecompanion.utils.log")
     M.log = setmetatable({}, {

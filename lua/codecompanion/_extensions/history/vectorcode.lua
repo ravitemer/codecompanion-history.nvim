@@ -14,8 +14,8 @@ local function get_summary_dir()
 end
 
 ---@class CodeCompanion.History.VectorCode
+---@field opts CodeCompanion.History.MemoryOpts|{}
 local M = {
-    ---@type MemoryOpts|{}
     opts = {
         auto_create_memories_on_summary_generation = true,
         vectorcode_exe = "vectorcode",

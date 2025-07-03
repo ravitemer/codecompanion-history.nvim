@@ -1,4 +1,4 @@
----@class Storage
+---@class CodeCompanion.History.Storage
 ---@field base_path string Base directory path
 ---@field index_path string Path to index file
 ---@field chats_dir string Path to chats directory
@@ -24,7 +24,7 @@ function Storage.new(opts)
     -- Clean expired chats on startup
     self:clean_expired_chats()
 
-    return self --[[@as Storage]]
+    return self --[[@as CodeCompanion.History.Storage]]
 end
 
 ---Clean expired chats based on expiration_days setting
@@ -113,7 +113,7 @@ function Storage:_ensure_storage_dirs()
     end
 end
 
----@param chat_data ChatData
+---@param chat_data CodeCompanion.History.ChatData
 ---@return {ok: boolean, error: string|nil}
 function Storage:_save_chat_to_file(chat_data)
     local chat_path = self.chats_dir .. "/" .. chat_data.save_id .. ".json"
@@ -121,7 +121,7 @@ function Storage:_save_chat_to_file(chat_data)
     return utils.write_json(chat_path, chat_data)
 end
 
----@param chat_data ChatData
+---@param chat_data CodeCompanion.History.ChatData
 ---@return {ok: boolean, error: string|nil}
 function Storage:_update_index_entry(chat_data)
     log:trace("Updating index entry for chat: %s", chat_data.save_id)
@@ -158,7 +158,7 @@ function Storage:_update_index_entry(chat_data)
 end
 
 ---Load all chats from storage (index only)
----@return table<string, ChatIndexData>
+---@return table<string, CodeCompanion.History.ChatIndexData>
 function Storage:get_chats()
     log:trace("Loading chat index")
     local result = utils.read_json(self.index_path)
@@ -178,7 +178,7 @@ end
 
 ---Load a specific chat by ID
 ---@param id string
----@return ChatData|nil
+---@return CodeCompanion.History.ChatData|nil
 function Storage:load_chat(id)
     local chat_path = self.chats_dir .. "/" .. id .. ".json"
     log:trace("Loading chat from: %s", chat_path)
@@ -191,7 +191,7 @@ function Storage:load_chat(id)
         return nil
     end
 
-    return result.data --[[@as ChatData]]
+    return result.data --[[@as CodeCompanion.History.ChatData]]
 end
 
 ---Validate chat object for required fields and structure
@@ -235,10 +235,10 @@ local function validate_chat_object(chat)
 end
 
 ---Save a chat to storage falling back to the last chat if none is provided
----@param chat? Chat
+---@param chat? CodeCompanion.History.Chat
 function Storage:save_chat(chat)
     if not chat then
-        chat = require("codecompanion").last_chat()
+        chat = require("codecompanion").last_chat() --[[@as CodeCompanion.History.Chat]]
         if not chat then
             return
         end
@@ -253,7 +253,7 @@ function Storage:save_chat(chat)
 
     log:trace("Saving chat: %s", chat.opts.save_id)
     -- Create chat data object requiring valid types
-    ---@type ChatData
+    ---@type CodeCompanion.History.ChatData
     local chat_data = {
         save_id = chat.opts.save_id,
         title = chat.opts.title,
@@ -322,7 +322,7 @@ function Storage:delete_chat(id)
 end
 
 ---Get the most recently updated chat from storage
----@return ChatData|nil
+---@return CodeCompanion.History.ChatData|nil
 function Storage:get_last_chat()
     log:debug("Getting most recent chat")
     local index = self:get_chats()
@@ -389,7 +389,7 @@ function Storage:rename_chat(save_id, new_title)
 end
 
 ---Save a summary to storage
----@param summary_data SummaryData
+---@param summary_data CodeCompanion.History.SummaryData
 ---@return boolean success
 function Storage:save_summary(summary_data)
     -- Save summary content to markdown file
@@ -418,7 +418,7 @@ function Storage:_invalidate_summaries_cache()
 end
 
 ---Update summaries index with summary data
----@param summary_data SummaryData
+---@param summary_data CodeCompanion.History.SummaryData
 ---@return {ok: boolean, error: string|nil}
 function Storage:_update_summaries_index(summary_data)
     local summaries_index_path = self.base_path .. "/summaries_index.json"
@@ -441,7 +441,7 @@ function Storage:_update_summaries_index(summary_data)
 end
 
 ---Get all summaries from storage (index only)
----@return table<string, SummaryIndexData>
+---@return table<string, CodeCompanion.History.SummaryIndexData>
 function Storage:get_summaries()
     if self.summaries_cache then
         return self.summaries_cache

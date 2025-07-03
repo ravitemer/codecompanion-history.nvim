@@ -1,9 +1,6 @@
-local DefaultPicker = require("codecompanion._extensions.history.pickers.default")
-local utils = require("codecompanion._extensions.history.utils")
-
----@class SnacksPicker : DefaultPicker
+---@class CodeCompanion.History.SnacksPicker : CodeCompanion.History.DefaultPicker
 local SnacksPicker = setmetatable({}, {
-    __index = DefaultPicker,
+    __index = require("codecompanion._extensions.history.pickers.default"),
 })
 SnacksPicker.__index = SnacksPicker
 

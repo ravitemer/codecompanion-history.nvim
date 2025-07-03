@@ -1,3 +1,4 @@
+---@diagnostic disable: deprecated
 local M = {}
 
 function M.remove_duplicates(list)
@@ -42,7 +43,7 @@ function M.format_relative_time(timestamp)
 end
 
 --This function is pasted from ravitemer/mcphub.nvim plugin
----@return EditorInfo Information about current editor state
+---@return CodeCompanion.History.EditorInfo Information about current editor state
 function M.get_editor_info()
     local buffers = vim.fn.getbufinfo({ buflisted = 1 })
     local valid_buffers = {}
@@ -53,7 +54,7 @@ function M.get_editor_info()
         -- Only include valid files (non-empty name and empty buftype)
         local buftype = vim.api.nvim_buf_get_option(buf.bufnr, "buftype")
         if buf.name ~= "" and buftype == "" then
-            ---@class BufferInfo
+            ---@type CodeCompanion.History.BufferInfo
             local buffer_info = {
                 bufnr = buf.bufnr,
                 name = buf.name,
@@ -64,6 +65,8 @@ function M.get_editor_info()
                 lastused = buf.lastused,
                 windows = buf.windows,
                 winnr = buf.windows[1], -- Primary window showing this buffer
+                filetype = vim.api.nvim_buf_get_option(buf.bufnr, "filetype"),
+                line_count = vim.api.nvim_buf_line_count(buf.bufnr),
             }
 
             -- Add cursor info for currently visible buffers
@@ -72,10 +75,6 @@ function M.get_editor_info()
                 local cursor = vim.api.nvim_win_get_cursor(win)
                 buffer_info.cursor_pos = cursor
             end
-
-            -- Add additional buffer info
-            buffer_info.filetype = vim.api.nvim_buf_get_option(buf.bufnr, "filetype")
-            buffer_info.line_count = vim.api.nvim_buf_line_count(buf.bufnr)
 
             table.insert(valid_buffers, buffer_info)
 
@@ -98,6 +97,8 @@ function M.get_editor_info()
     }
 end
 
+---@param obj any The object to process
+---@return any The object with functions removed
 function M.remove_functions(obj)
     if type(obj) ~= "table" then
         return obj

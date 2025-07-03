@@ -2,18 +2,18 @@ local config = require("codecompanion.config")
 local log = require("codecompanion._extensions.history.log")
 local utils = require("codecompanion._extensions.history.utils")
 
----@class History.UI
----@field storage Storage
----@field title_generator TitleGenerator
+---@class CodeCompanion.History.UI
+---@field storage CodeCompanion.History.Storage
+---@field title_generator CodeCompanion.History.TitleGenerator
 ---@field default_buf_title string
----@field picker Pickers
+---@field picker CodeCompanion.History.Pickers
 ---@field picker_keymaps table
 local UI = {}
 
----@param opts HistoryOpts
----@param storage Storage
----@param title_generator TitleGenerator
----@return History.UI
+---@param opts CodeCompanion.History.Opts
+---@param storage CodeCompanion.History.Storage
+---@param title_generator CodeCompanion.History.TitleGenerator
+---@return CodeCompanion.History.UI
 function UI.new(opts, storage, title_generator)
     local self = setmetatable({}, {
         __index = UI,
@@ -26,11 +26,11 @@ function UI.new(opts, storage, title_generator)
     self.picker_keymaps = opts.picker_keymaps
 
     log:trace("Initialized UI with picker: %s", opts.picker)
-    return self --[[@as History.UI]]
+    return self --[[@as CodeCompanion.History.UI]]
 end
 
 ---Update chat title with optional suffix
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@param suffix? string Optional suffix to append to title
 ---@param force? boolean
 function UI:update_chat_title(chat, suffix, force)
@@ -47,7 +47,7 @@ function UI:update_chat_title(chat, suffix, force)
 end
 
 ---Check and update summary indicator for existing chat
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 function UI:check_and_update_summary_indicator(chat)
     if not chat.opts.save_id then
         return
@@ -62,7 +62,7 @@ function UI:check_and_update_summary_indicator(chat)
 end
 
 ---Open summary for editing in main editor
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 function UI:open_summary_preview(chat)
     local summary_path = self.storage:get_location() .. "/summaries/" .. chat.opts.save_id .. ".md"
 
@@ -192,10 +192,10 @@ function UI:_set_buf_title(bufnr, title, attempt)
 end
 
 ---Format items for display based on type
----@param items_data table<string,ChatIndexData> | table<string,SummaryIndexData> Raw items from storage
+---@param items_data table<string,CodeCompanion.History.ChatIndexData> | table<string,CodeCompanion.History.SummaryIndexData> Raw items from storage
 ---@param item_type "chat" | "summary"
----@param storage Storage Storage instance for getting summaries
----@return EntryItem[] Formatted items
+---@param storage CodeCompanion.History.Storage Storage instance for getting summaries
+---@return CodeCompanion.History.EntryItem[] Formatted items
 local function format_items(items_data, item_type, storage)
     local items = {}
 
@@ -235,8 +235,8 @@ end
 
 ---Generic method to open items (chats or summaries)
 ---@param item_type "chat" | "summary"
----@param items_data table<string,ChatIndexData> | table<string,SummaryIndexData> Raw items from storage
----@param handlers UIHandlers Handlers for item actions
+---@param items_data table<string,CodeCompanion.History.ChatIndexData> | table<string,CodeCompanion.History.SummaryIndexData> Raw items from storage
+---@param handlers CodeCompanion.History.UIHandlers Handlers for item actions
 ---@param current_item_id? string Current item ID for highlighting
 function UI:_open_items(item_type, items_data, handlers, current_item_id)
     local item_name = item_type == "chat" and "chats" or "summaries"
@@ -281,14 +281,14 @@ end
 
 function UI:open_saved_chats()
     local codecompanion = require("codecompanion")
-    local last_chat = codecompanion.last_chat()
+    local last_chat = codecompanion.last_chat() --[[@as CodeCompanion.History.Chat?]]
 
     self:_open_items("chat", self.storage:get_chats(), {
         on_open = function()
             log:trace("Opening saved chats picker")
             self:open_saved_chats()
         end,
-        ---@param chat_data ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatIndexData
         ---@return string[] lines
         on_preview = function(chat_data)
             -- Load full chat data for preview
@@ -300,19 +300,19 @@ function UI:open_saved_chats()
                 return { "Chat data not available" }
             end
         end,
-        ---@param chat_data ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatIndexData
         on_delete = function(chat_data)
             log:trace("Deleting chat: %s", chat_data.save_id)
             self.storage:delete_chat(chat_data.save_id)
         end,
-        ---@param chat_data ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatIndexData
         ---@param new_title string
         on_rename = function(chat_data, new_title)
             log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
             self.storage:rename_chat(chat_data.save_id, new_title)
             local found_bufnr = nil
             for _, bufnr in ipairs(_G.codecompanion_buffers or {}) do
-                local chat = codecompanion.buf_get_chat(bufnr)
+                local chat = codecompanion.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat?]]
                 if chat and chat.opts.save_id == chat_data.save_id then
                     found_bufnr = bufnr
                     chat.opts.title = new_title
@@ -325,7 +325,7 @@ function UI:open_saved_chats()
                 title = new_title,
             })
         end,
-        ---@param chat_data ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatIndexData
         on_select = function(chat_data)
             self:_handle_on_select(chat_data.save_id)
         end,
@@ -371,7 +371,7 @@ function UI:open_summaries()
             log:trace("Opening summaries picker")
             self:open_summaries()
         end,
-        ---@param summary_data SummaryIndexData
+        ---@param summary_data CodeCompanion.History.SummaryIndexData
         ---@return string[] lines
         on_preview = function(summary_data)
             -- Load full summary content for preview
@@ -383,20 +383,20 @@ function UI:open_summaries()
                 return { "Summary content not available" }
             end
         end,
-        ---@param summary_data SummaryIndexData
+        ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_delete = function(summary_data)
             log:trace("Deleting summary: %s", summary_data.summary_id)
             -- Note: We'd need to implement delete_summary in storage
             vim.notify("Summary deletion not yet implemented", vim.log.levels.WARN)
         end,
-        ---@param summary_data SummaryIndexData
+        ---@param summary_data CodeCompanion.History.SummaryIndexData
         ---@param new_title string
         on_rename = function(summary_data, new_title)
             log:trace("Renaming summary: %s -> %s", summary_data.summary_id, new_title)
             -- Note: We'd need to implement rename_summary in storage
             vim.notify("Summary renaming not yet implemented", vim.log.levels.WARN)
         end,
-        ---@param summary_data SummaryIndexData
+        ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_select = function(summary_data)
             log:trace("Selected summary: %s", summary_data.summary_id)
             self:_handle_on_select(summary_data.chat_id)
@@ -405,7 +405,7 @@ function UI:open_summaries()
 end
 
 ---Creates a new chat from the given chat data restoring what it can along with the adapter, settings. If adapter is not found, ask user to select another adapter. If adapter is found but model is not available, uses the adapter's default model.
----@param chat_data? ChatData
+---@param chat_data? CodeCompanion.History.ChatData
 ---@return CodeCompanion.Chat | nil
 function UI:create_chat(chat_data)
     log:trace("Creating new chat from saved data")
@@ -439,12 +439,12 @@ function UI:create_chat(chat_data)
             messages = messages,
             context = context,
             settings = settings,
-            adapter = adapter,
+            adapter = adapter --[[@as CodeCompanion.Adapter]],
             title = title,
             --INFO: No need to ignore system prompt here, thanks to oli we don't add system messages with same tag (`from_config`) twice.
             -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
             -- ignore_system_prompt = true,
-        })
+        }) --[[@as CodeCompanion.History.Chat]]
         for _, ref in ipairs(chat_data.refs or {}) do
             chat.references:add(ref)
         end
@@ -510,7 +510,7 @@ end
 
 ---[[Most of the code is copied from codecompanion/strategies/chat/ui.lua]]
 ---Retrieve the lines to be displayed in the preview window
----@param chat_data ChatData
+---@param chat_data CodeCompanion.History.ChatData
 function UI:_get_preview_lines(chat_data)
     local lines = {}
     local function spacer()
@@ -622,7 +622,7 @@ function UI:_get_preview_lines(chat_data)
     return lines
 end
 
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@param saved_at number
 function UI:update_last_saved(chat, saved_at)
     log:trace("Updating last saved time for chat: %s", chat.opts.save_id or "N/A")

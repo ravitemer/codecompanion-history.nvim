@@ -8,22 +8,22 @@ local CONSTANTS = {
     STATUS_SUCCESS = "success",
 }
 
----@class TitleGenerator
----@field opts HistoryOpts
+---@class CodeCompanion.History.TitleGenerator
+---@field opts CodeCompanion.History.Opts
 local TitleGenerator = {}
 
----@param opts HistoryOpts
----@return TitleGenerator
+---@param opts CodeCompanion.History.Opts
+---@return CodeCompanion.History.TitleGenerator
 function TitleGenerator.new(opts)
     local self = setmetatable({}, {
         __index = TitleGenerator,
     })
     self.opts = opts
-    return self --[[@as TitleGenerator]]
+    return self --[[@as CodeCompanion.History.TitleGenerator]]
 end
 
 ---Count user messages in chat (excluding tagged/reference messages)
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@return number
 function TitleGenerator:_count_user_messages(chat)
     if not chat.messages or #chat.messages == 0 then
@@ -43,7 +43,7 @@ function TitleGenerator:_count_user_messages(chat)
 end
 
 ---Check if title should be generated or refreshed
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@return boolean should_generate, boolean is_refresh
 function TitleGenerator:should_generate(chat)
     if not self.opts.auto_generate_title then
@@ -73,7 +73,7 @@ function TitleGenerator:should_generate(chat)
 end
 
 ---Generate title for chat
----@param chat Chat The chat object containing messages and ID
+---@param chat CodeCompanion.History.Chat The chat object containing messages and ID
 ---@param callback fun(title: string|nil) Callback function to receive the generated title
 ---@param is_refresh? boolean Whether this is a title refresh (default: false)
 function TitleGenerator:generate(chat, callback, is_refresh)
@@ -216,13 +216,13 @@ Title:]],
     self:_make_adapter_request(chat, prompt, callback)
 end
 
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@param prompt string
 ---@param callback fun(title: string|nil)
 function TitleGenerator:_make_adapter_request(chat, prompt, callback)
     log:trace("Making adapter request for title generation")
     local opts = self.opts.title_generation_opts or {}
-    local adapter = vim.deepcopy(chat.adapter)
+    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.Adapter]]
     local settings = vim.deepcopy(chat.settings)
     if opts.adapter then
         adapter = require("codecompanion.adapters").resolve(opts.adapter)

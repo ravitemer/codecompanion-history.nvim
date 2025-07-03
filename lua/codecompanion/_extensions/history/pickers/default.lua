@@ -1,20 +1,20 @@
 local utils = require("codecompanion._extensions.history.utils")
 
----@class PickerConfig
+---@class CodeCompanion.History.PickerConfig
 ---@field item_type "chat" | "summary"
----@field items EntryItem[] Array of items to display
----@field handlers UIHandlers Action handlers
+---@field items CodeCompanion.History.EntryItem[] Array of items to display
+---@field handlers CodeCompanion.History.UIHandlers Action handlers
 ---@field keymaps table Picker keymaps
 ---@field current_item_id? string Current item ID for highlighting
 ---@field title string Picker title
 
----@class DefaultPicker
----@field config PickerConfig
+---@class CodeCompanion.History.DefaultPicker
+---@field config CodeCompanion.History.PickerConfig
 local DefaultPicker = {}
 DefaultPicker.__index = DefaultPicker
 
----@param config PickerConfig
----@return DefaultPicker
+---@param config CodeCompanion.History.PickerConfig
+---@return CodeCompanion.History.DefaultPicker
 function DefaultPicker:new(config)
     local base = setmetatable({}, self)
     self.config = config
@@ -76,7 +76,7 @@ function DefaultPicker:get_item_name_plural()
 end
 
 ---Generic format entry method that dispatches based on item type
----@param entry EntryItem Entry from the index
+---@param entry CodeCompanion.History.EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:format_entry(entry)
     if self.config.item_type == "chat" then
@@ -87,7 +87,7 @@ function DefaultPicker:format_entry(entry)
 end
 
 ---Format a chat entry for display
----@param entry EntryItem Entry from the index
+---@param entry CodeCompanion.History.EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:_format_chat_entry(entry)
     local parts = {}
@@ -107,8 +107,7 @@ function DefaultPicker:_format_chat_entry(entry)
 
     if entry.token_estimate then
         local tokens = entry.token_estimate
-        tokens = string.format("%.1fk", tokens / 1000)
-        table.insert(parts, "(~" .. tokens .. ")")
+        table.insert(parts, string.format("(~%.1fk)", tokens / 1000))
     end
 
     -- Relative time
@@ -119,7 +118,7 @@ function DefaultPicker:_format_chat_entry(entry)
 end
 
 ---Format a summary entry for display
----@param entry EntryItem Entry from the index
+---@param entry CodeCompanion.History.EntryItem Entry from the index
 ---@return string formatted_display
 function DefaultPicker:_format_summary_entry(entry)
     local parts = {}

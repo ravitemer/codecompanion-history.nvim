@@ -1,11 +1,11 @@
 ---Picker auto-resolution for codecompanion-history extension
 ---Similar to CodeCompanion's provider system but specific to history pickers
 
----@class HistoryPickerSpec
+---@class CodeCompanion.History.PickerSpec
 ---@field module string module name to require
 ---@field condition? function condition function to check if the picker is available
 
----@type table<Pickers, HistoryPickerSpec>
+---@type table<CodeCompanion.History.Pickers, CodeCompanion.History.PickerSpec>
 local picker_configs = {
     telescope = {
         module = "telescope",
@@ -25,10 +25,10 @@ local picker_configs = {
     },
 }
 
----@param providers Pickers[] Provider names to check in order
----@param configs table<Pickers, HistoryPickerSpec> Provider configs
----@param fallback Pickers Fallback provider name
----@return Pickers available provider name
+---@param providers CodeCompanion.History.Pickers[] Provider names to check in order
+---@param configs table<CodeCompanion.History.Pickers, CodeCompanion.History.PickerSpec> Provider configs
+---@param fallback CodeCompanion.History.Pickers Fallback provider name
+---@return CodeCompanion.History.Pickers available provider name
 local function find_available_picker(providers, configs, fallback)
     for _, key in ipairs(providers) do
         local config = configs[key]
@@ -49,7 +49,7 @@ local function find_available_picker(providers, configs, fallback)
 end
 
 ---Get the best available history picker
----@return Pickers resolved picker name
+---@return CodeCompanion.History.Pickers resolved picker name
 local function get_history_picker()
     -- Priority order for history pickers
     local providers = { "telescope", "fzf-lua", "snacks" }

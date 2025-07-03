@@ -1,9 +1,6 @@
-local DefaultPicker = require("codecompanion._extensions.history.pickers.default")
-local utils = require("codecompanion._extensions.history.utils")
-
----@class TelescopePicker : DefaultPicker
+---@class CodeCompanion.History.TelescopePicker : CodeCompanion.History.DefaultPicker
 local TelescopePicker = setmetatable({}, {
-    __index = DefaultPicker,
+    __index = require("codecompanion._extensions.history.pickers.default"),
 })
 TelescopePicker.__index = TelescopePicker
 

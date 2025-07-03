@@ -1,8 +1,6 @@
 local client = require("codecompanion.http")
-local config = require("codecompanion.config")
 local log = require("codecompanion._extensions.history.log")
 local schema = require("codecompanion.schema")
-local utils = require("codecompanion._extensions.history.utils")
 
 local CONSTANTS = {
     STATUS_ERROR = "error",
@@ -11,13 +9,13 @@ local CONSTANTS = {
     MIN_MESSAGES_FOR_SUMMARY = 3,
 }
 
----@class SummaryGenerator
----@field opts HistoryOpts
----@field generation_opts SummaryGenerationOpts
+---@class CodeCompanion.History.SummaryGenerator
+---@field opts CodeCompanion.History.Opts
+---@field generation_opts CodeCompanion.History.SummaryGenerationOpts
 local SummaryGenerator = {}
 
----@param opts HistoryOpts
----@return SummaryGenerator
+---@param opts CodeCompanion.History.Opts
+---@return CodeCompanion.History.SummaryGenerator
 function SummaryGenerator.new(opts)
     local self = setmetatable({}, {
         __index = SummaryGenerator,
@@ -29,12 +27,12 @@ function SummaryGenerator.new(opts)
         include_tool_outputs = true,
     }, (opts.summary and opts.summary.generation_opts) or {})
 
-    return self --[[@as SummaryGenerator]]
+    return self --[[@as CodeCompanion.History.SummaryGenerator]]
 end
 
 ---Generate summary for chat
----@param chat Chat The chat object containing messages and ID
----@param callback fun(summary: table|nil, error: string|nil) Callback function to receive the generated summary
+---@param chat CodeCompanion.History.Chat The chat object containing messages and ID
+---@param callback fun(summary: CodeCompanion.History.SummaryData|nil, error: string|nil) Callback function to receive the generated summary
 function SummaryGenerator:generate(chat, callback)
     -- Validate chat has enough content
     if not chat.messages or #chat.messages < CONSTANTS.MIN_MESSAGES_FOR_SUMMARY then
@@ -145,7 +143,7 @@ function SummaryGenerator:_format_message_for_summary(msg)
 end
 
 ---Recursive method to handle summarization with context limits
----@param chat Chat
+---@param chat CodeCompanion.History.Chat The chat object containing messages and ID
 ---@param remaining_messages string[] Messages still to be processed
 ---@param previous_summary string|nil Summary from previous chunks
 ---@param callback fun(summary: string|nil, error: string|nil)
@@ -255,7 +253,7 @@ end
 
 ---Create the user prompt for summarization
 ---@param messages string[] Messages to summarize
----@param chat Chat
+---@param chat CodeCompanion.History.Chat The chat object containing messages and ID
 ---@param previous_summary string|nil For chunked summarization
 ---@return string
 function SummaryGenerator:_create_user_prompt(messages, chat, previous_summary)
@@ -290,7 +288,7 @@ function SummaryGenerator:_create_user_prompt(messages, chat, previous_summary)
 end
 
 ---Make adapter request for summary generation
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@param system_prompt string
 ---@param user_prompt string
 ---@param callback fun(content: string|nil, error: string|nil)
@@ -298,7 +296,7 @@ function SummaryGenerator:_make_adapter_request(chat, system_prompt, user_prompt
     log:trace("Making adapter request for summary generation")
 
     local opts = self.generation_opts
-    local adapter = vim.deepcopy(chat.adapter)
+    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.Adapter]]
     local settings = vim.deepcopy(chat.settings)
 
     -- Use custom adapter/model if specified
@@ -348,10 +346,10 @@ function SummaryGenerator:_make_adapter_request(chat, system_prompt, user_prompt
 end
 
 ---Create complete summary object with metadata
----@param chat Chat
+---@param chat CodeCompanion.History.Chat
 ---@param project_root string
 ---@param summary_content string
----@return table
+---@return CodeCompanion.History.SummaryData
 function SummaryGenerator:_create_summary_object(chat, project_root, summary_content)
     return {
         summary_id = chat.opts.save_id,
@@ -359,10 +357,9 @@ function SummaryGenerator:_create_summary_object(chat, project_root, summary_con
         chat_title = chat.opts.title, -- Add chat title
         generated_at = os.time(),
         content = summary_content,
-
         -- Basic metadata
         project_root = project_root,
-    }
+    } --[[@as CodeCompanion.History.SummaryData]]
 end
 
 -- Helper methods

@@ -1,8 +1,6 @@
-local DefaultPicker = require("codecompanion._extensions.history.pickers.default")
-
----@class FzfluaPicker : DefaultPicker
+---@class CodeCompanion.History.FzfluaPicker : CodeCompanion.History.DefaultPicker
 local FzfluaPicker = setmetatable({}, {
-    __index = DefaultPicker,
+    __index = require("codecompanion._extensions.history.pickers.default"),
 })
 
 -- Convert neovim bind to fzf bind
