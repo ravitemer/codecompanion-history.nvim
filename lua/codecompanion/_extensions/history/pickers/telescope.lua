@@ -127,6 +127,18 @@ function TelescopePicker:browse()
                     nowait = true,
                 })
 
+                -- Duplicate chat (normal mode and <C-y> in insert mode)
+                vim.keymap.set({ "n" }, self.keymaps.duplicate.n, duplicate_selection, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+                vim.keymap.set({ "i" }, self.keymaps.duplicate.i, duplicate_selection, {
+                    buffer = prompt_bufnr,
+                    silent = true,
+                    nowait = true,
+                })
+
                 return true
             end,
         })
