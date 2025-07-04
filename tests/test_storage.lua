@@ -752,4 +752,133 @@ T["Duplicate Operations"]["handles duplicate with untitled chat"] = function()
     eq("Untitled (1)", result.duplicated_title)
 end
 
+-- Summary Storage Tests
+T["Summary Storage"] = new_set()
+
+T["Summary Storage"]["saves and loads summary successfully"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        
+        -- Create test summary data
+        local summary_data = {
+            summary_id = "test_summary_123",
+            chat_id = "test_summary_123",
+            chat_title = "Test Chat for Summary",
+            generated_at = os.time(),
+            content = "# Test Summary\n\n## Overview\nThis is a test summary for validation.",
+            project_root = "/test/project"
+        }
+        
+        -- Save the summary
+        local save_result = test_storage:save_summary(summary_data)
+        
+        -- Load it back
+        local loaded_content = test_storage:load_summary("test_summary_123")
+        local summaries_index = test_storage:get_summaries()
+        
+        return {
+            save_success = save_result,
+            loaded_content = loaded_content,
+            content_matches = loaded_content == summary_data.content,
+            index_has_entry = summaries_index["test_summary_123"] ~= nil,
+            index_title_correct = summaries_index["test_summary_123"] and summaries_index["test_summary_123"].chat_title == "Test Chat for Summary",
+            index_has_generated_at = summaries_index["test_summary_123"] and type(summaries_index["test_summary_123"].generated_at) == "number"
+        }
+    ]])
+
+    eq(true, result.save_success)
+    eq("# Test Summary\n\n## Overview\nThis is a test summary for validation.", result.loaded_content)
+    eq(true, result.content_matches)
+    eq(true, result.index_has_entry)
+    eq(true, result.index_title_correct)
+    eq(true, result.index_has_generated_at)
+end
+
+T["Summary Storage"]["handles multiple summaries and cache invalidation"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        
+        -- Create multiple test summaries
+        local summaries = {
+            {
+                summary_id = "summary_001",
+                chat_id = "summary_001", 
+                chat_title = "First Summary Chat",
+                generated_at = os.time() - 100,
+                content = "# First Summary\n\nContent for first summary.",
+                project_root = "/project1"
+            },
+            {
+                summary_id = "summary_002",
+                chat_id = "summary_002",
+                chat_title = "Second Summary Chat", 
+                generated_at = os.time() - 50,
+                content = "# Second Summary\n\nContent for second summary.",
+                project_root = "/project2"
+            },
+            {
+                summary_id = "summary_003",
+                chat_id = "summary_003",
+                chat_title = "Third Summary Chat",
+                generated_at = os.time(),
+                content = "# Third Summary\n\nContent for third summary.",
+                project_root = "/project1"
+            }
+        }
+        
+        -- Save all summaries
+        local save_results = {}
+        for _, summary in ipairs(summaries) do
+            table.insert(save_results, test_storage:save_summary(summary))
+        end
+        
+        -- Get summaries index (should be populated)
+        local first_index = test_storage:get_summaries()
+        
+        -- Test cache by getting index again (should use cache)
+        local cached_index = test_storage:get_summaries()
+        
+        -- Save another summary to test cache invalidation
+        local new_summary = {
+            summary_id = "summary_004",
+            chat_id = "summary_004",
+            chat_title = "Fourth Summary Chat",
+            generated_at = os.time() + 10,
+            content = "# Fourth Summary\n\nContent for fourth summary.",
+            project_root = "/project3"
+        }
+        test_storage:save_summary(new_summary)
+        
+        -- Get index again (cache should be invalidated)
+        local updated_index = test_storage:get_summaries()
+        
+        -- Load specific summaries
+        local first_content = test_storage:load_summary("summary_001")
+        local third_content = test_storage:load_summary("summary_003")
+        local nonexistent_content = test_storage:load_summary("does_not_exist")
+        
+        return {
+            all_saves_successful = vim.tbl_contains(save_results, false) == false,
+            first_index_count = vim.tbl_count(first_index),
+            cached_index_same = vim.deep_equal(first_index, cached_index),
+            updated_index_count = vim.tbl_count(updated_index),
+            has_new_summary = updated_index["summary_004"] ~= nil,
+            first_content_correct = first_content == "# First Summary\n\nContent for first summary.",
+            third_content_correct = third_content == "# Third Summary\n\nContent for third summary.",
+            nonexistent_is_nil = nonexistent_content == nil,
+            index_has_project_roots = updated_index["summary_001"] and updated_index["summary_001"].project_root == "/project1"
+        }
+    ]])
+
+    eq(true, result.all_saves_successful)
+    eq(3, result.first_index_count)
+    eq(true, result.cached_index_same)
+    eq(4, result.updated_index_count) -- Should have 4 after adding new one
+    eq(true, result.has_new_summary)
+    eq(true, result.first_content_correct)
+    eq(true, result.third_content_correct)
+    eq(true, result.nonexistent_is_nil)
+    eq(true, result.index_has_project_roots)
+end
+
 return T

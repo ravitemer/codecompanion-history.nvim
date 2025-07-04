@@ -471,8 +471,6 @@ function UI:open_summaries()
         ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_delete = function(summary_data)
             log:trace("Deleting summary: %s", summary_data.summary_id)
-            -- Note: We'd need to implement delete_summary in storage
-            vim.notify("Summary deletion not yet implemented", vim.log.levels.WARN)
         end,
         ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_rename = function(summary_data) end,
