@@ -61,33 +61,7 @@ function UI:check_and_update_summary_indicator(chat)
     end
 end
 
----Open summary for editing in main editor
----@param chat CodeCompanion.History.Chat
-function UI:open_summary_preview(chat)
-    local summary_path = self.storage:get_location() .. "/summaries/" .. chat.opts.save_id .. ".md"
-
-    -- Check if summary file exists
-    local Path = require("plenary.path")
-    if not Path:new(summary_path):exists() then
-        vim.notify("Summary file not found", vim.log.levels.ERROR)
-        return
-    end
-
-    -- Get editor info to find appropriate window
-    local editor_info = utils.get_editor_info()
-
-    -- Use last active window if it's not the chat window
-    if editor_info.last_active and editor_info.last_active.bufnr ~= chat.bufnr then
-        vim.api.nvim_set_current_win(editor_info.last_active.winnr)
-    end
-
-    -- Open the summary file for editing
-    vim.cmd("edit " .. vim.fn.fnameescape(summary_path))
-
-    log:trace("Opened summary file for editing: %s", summary_path)
-end
-
---method for setting buffer title with retry
+---Method for setting buffer title with retry
 ---@param bufnr number
 ---@param title string|string[]
 ---@param attempt? number
@@ -417,12 +391,52 @@ function UI:open_saved_chats(filter_fn)
     }, last_chat and last_chat.opts.save_id)
 end
 
+---Handle summary selection from the picker
+---@param summary_data CodeCompanion.History.SummaryIndexData
+function UI:_handle_summary_select(summary_data)
+    local codecompanion = require("codecompanion")
+    local active_chat = codecompanion.last_chat()
+    local current_chat = active_chat or codecompanion.chat()
+    local save_id = summary_data.summary_id
+    local chat_title = summary_data.chat_title or "Untitled"
+    if current_chat then
+        local summary_content = self.storage:load_summary(save_id)
+        if not summary_content then
+            return vim.notify("Summary not found: " .. save_id, vim.log.levels.ERROR)
+        end
+        local ref_id = "<summary>" .. chat_title .. "</summary>"
+        local content = string.format(
+            [[<summary>
+Chat Title: %s
+Summary:
+
+%s
+</summary>]],
+            chat_title,
+            summary_content
+        )
+        current_chat:add_message({
+            role = config.constants.USER_ROLE,
+            content = content,
+        }, {
+            reference = ref_id,
+            visiable = false,
+        })
+        current_chat.references:add({
+            id = ref_id,
+        })
+        vim.notify("Summary added to chat")
+    else
+        vim.notify("No active chat to attach summary to", vim.log.levels.ERROR)
+    end
+end
+
 ---@param save_id string
 function UI:_handle_on_select(save_id)
     local codecompanion = require("codecompanion")
     log:trace("Selected chat: %s", save_id)
     local chat_module = require("codecompanion.strategies.chat")
-    local opened_chats = chat_module.buf_get_chat()
+    local opened_chats = chat_module.buf_get_chat() --[[@as Array<CodeCompanion.Chat>]]
     local active_chat = codecompanion.last_chat()
 
     for _, data in ipairs(opened_chats) do
@@ -468,23 +482,76 @@ function UI:open_summaries()
                 return { "Summary content not available" }
             end
         end,
-        ---@param summary_data CodeCompanion.History.SummaryIndexData
+        ---@param summary_data CodeCompanion.History.SummaryIndexData|CodeCompanion.History.SummaryIndexData[]
         on_delete = function(summary_data)
-            log:trace("Deleting summary: %s", summary_data.summary_id)
+            -- Handle both single summary and array of summaries
+            local summaries_to_delete = {}
+            if type(summary_data) == "table" and summary_data.summary_id then
+                -- Single summary
+                summaries_to_delete = { summary_data }
+            elseif type(summary_data) == "table" and #summary_data > 0 then
+                -- Array of summaries
+                summaries_to_delete = summary_data
+            else
+                vim.notify("Invalid summary data for deletion", vim.log.levels.ERROR)
+                return
+            end
+
+            log:trace("Deleting %d summary(s)", #summaries_to_delete)
+
+            -- Always ask for confirmation
+            local summary_count = #summaries_to_delete
+            local confirmation_message
+            if summary_count == 1 then
+                confirmation_message =
+                    string.format('Delete summary for "%s"?', summaries_to_delete[1].chat_title or "Untitled")
+            else
+                confirmation_message = string.format("Delete %d summaries?", summary_count)
+            end
+
+            local choice = vim.fn.confirm(confirmation_message, "&Yes\n&No", 2)
+            if choice ~= 1 then
+                return -- User cancelled
+            end
+
+            -- Delete all selected summaries
+            local deleted_count = 0
+            for _, summary in ipairs(summaries_to_delete) do
+                if self.storage:delete_summary(summary.summary_id) then
+                    deleted_count = deleted_count + 1
+                end
+            end
+
+            if deleted_count > 0 then
+                local message = deleted_count == 1 and "Summary deleted successfully"
+                    or string.format("%d summaries deleted successfully", deleted_count)
+                vim.notify(message, vim.log.levels.INFO)
+                self:open_summaries()
+            else
+                vim.notify("Failed to delete summaries", vim.log.levels.ERROR)
+            end
         end,
         ---@param summary_data CodeCompanion.History.SummaryIndexData
-        on_rename = function(summary_data) end,
+        on_rename = function(summary_data)
+            -- Renaming summaries is not supported
+            vim.notify("Renaming summaries is not supported", vim.log.levels.INFO)
+        end,
+        ---@param summary_data CodeCompanion.History.SummaryIndexData
+        on_duplicate = function(summary_data)
+            -- Duplicating summaries is not supported
+            vim.notify("Duplicating summaries is not supported", vim.log.levels.INFO)
+        end,
         ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_select = function(summary_data)
             log:trace("Selected summary: %s", summary_data.summary_id)
-            self:_handle_on_select(summary_data.chat_id)
+            self:_handle_summary_select(summary_data)
         end,
     })
 end
 
 ---Creates a new chat from the given chat data restoring what it can along with the adapter, settings. If adapter is not found, ask user to select another adapter. If adapter is found but model is not available, uses the adapter's default model.
 ---@param chat_data? CodeCompanion.History.ChatData
----@return CodeCompanion.Chat | nil
+---@return CodeCompanion.History.Chat?
 function UI:create_chat(chat_data)
     log:trace("Creating new chat from saved data")
     chat_data = chat_data or {}

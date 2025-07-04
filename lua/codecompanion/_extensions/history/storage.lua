@@ -484,6 +484,52 @@ function Storage:load_summary(summary_id)
     return result.ok and result.data or nil
 end
 
+---Delete a summary from storage
+---@param summary_id string
+---@return boolean success
+function Storage:delete_summary(summary_id)
+    if not summary_id then
+        log:error("Cannot delete summary: missing id")
+        return false
+    end
+
+    log:debug("Deleting summary: %s", summary_id)
+
+    -- Delete the summary file
+    local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
+    local delete_result = utils.delete_file(summary_path)
+    if not delete_result.ok then
+        log:error("Failed to delete summary file: %s", delete_result.error)
+    end
+
+    -- Remove from summaries index
+    local summaries_index_path = self.base_path .. "/summaries_index.json"
+    local index_result = utils.read_json(summaries_index_path)
+    if not index_result.ok then
+        log:error("Failed to read summaries index for deletion: %s", index_result.error)
+        return false
+    end
+
+    -- Ensure we have a table to work with
+    local index = index_result.data or {}
+
+    -- Remove entry from index
+    index[summary_id] = nil
+
+    -- Save updated index
+    local write_result = utils.write_json(summaries_index_path, index)
+    if not write_result.ok then
+        log:error("Failed to update summaries index after deletion: %s", write_result.error)
+        return false
+    end
+
+    -- Invalidate cache after deletion
+    self:_invalidate_summaries_cache()
+
+    log:debug("Successfully deleted summary: %s", summary_id)
+    return true
+end
+
 ---Duplicate a chat in storage with a new title
 ---@param original_id string The original chat ID to duplicate
 ---@param new_title? string Optional new title (defaults to "Title (1)")

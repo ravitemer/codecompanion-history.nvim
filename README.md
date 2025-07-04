@@ -34,7 +34,6 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 - **Chunked summarization**: Handles large conversations by splitting into manageable chunks
 - **Customizable generation**: Configure adapter, model, and system prompts
 - **Summary browsing**: Dedicated browser with `gbs` to explore all summaries
-- **In-editor editing**: Preview and edit summaries with `gps` in main editor
 
 ### 🧠 Memory System (@memory tool)
 - **Vector-based search**: Uses VectorCode CLI to index and search through chat summaries
@@ -111,6 +110,8 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface (auto resolved to a valid picker)
                 picker = "telescope", --- ("telescope", "snacks", "fzf-lua", or "default") 
+                ---Optional filter function to control which chats are shown when browsing
+                chat_filter = nil, -- function(chat_data) return boolean end
                 -- Customize picker keymaps (optional)
                 picker_keymaps = {
                     rename = { n = "r", i = "<M-r>" },
@@ -129,20 +130,23 @@ require("codecompanion").setup({
                     ---Maximum number of times to refresh the title (default: 3)
                     max_refreshes = 3,
                 },
-                
+
+                continue_last_chat = false,
+                delete_on_clearing_chat = false,
+                dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
+                enable_logging = false,
+
                 -- Summary system
                 summary = {
-                    -- Keymap to generate summary (default: "gcs")
+                    -- Keymap to generate summary for current chat (default: "gcs")
                     create_summary_keymap = "gcs",
                     -- Keymap to browse summaries (default: "gbs")
                     browse_summaries_keymap = "gbs",
-                    -- Keymap to preview/edit summary (default: "gps")
-                    preview_summary_keymap = "gps",
                     
                     generation_opts = {
                         adapter = nil, -- defaults to current chat adapter
                         model = nil, -- defaults to current chat model
-                        context_size = 90000, -- max tokens for summarization
+                        context_size = 90000, -- max tokens to include in a single summarization request
                         include_references = true, -- include slash command content
                         include_tool_outputs = true, -- include tool execution results
                         system_prompt = nil, -- custom system prompt (string or function)
@@ -166,13 +170,6 @@ require("codecompanion").setup({
                     -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
                     index_on_startup = false,
                 },
-
-                continue_last_chat = false,
-                delete_on_clearing_chat = false,
-                dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
-                enable_logging = false,
-                ---Optional filter function to control which chats are shown when browsing
-                chat_filter = nil, -- function(chat_data) return boolean end
             }
         }
     }
@@ -187,7 +184,6 @@ require("codecompanion").setup({
 - `:CodeCompanionSummaries` - Browse all summaries
 
 
-
 #### ⌨️ Chat Buffer Keymaps
 
 **History Management:**
@@ -197,7 +193,6 @@ require("codecompanion").setup({
 **Summary System:**
 - `gcs` - Generate summary for current chat (customizable via `opts.summary.create_summary_keymap`)
 - `gbs` - Browse saved summaries (customizable via `opts.summary.browse_summaries_keymap`)
-- `gps` - Preview/edit summary for current chat (customizable via `opts.summary.preview_summary_keymap`)
 
 #### 📚 History Browser
 
@@ -226,18 +221,12 @@ The summary browser shows all your generated summaries with:
 - Preview of summary content
 
 Actions in summary browser:
-- `<CR>` - Open associated chat
-- Delete/rename actions (same as history browser)
+- `<CR>` - Add the summary to the current chat
+- Normal mode:
+  - `d` - Delete selected summary(s)
+- Insert mode:
+  - `<M-d>` (Alt+d) - Delete selected summary(s)
 
-#### ✏️ Summary Editing
-
-When you press `gps` on a chat with a summary:
-- Opens the summary markdown file in your main editor
-- Full editing capabilities with syntax highlighting
-- Save with `:w` as usual
-- Automatically updates summary storage
-
-> Note: Delete and rename actions are only available in telescope and snacks pickers. Multiple items can be selected for deletion using picker's multi-select feature (press `<Tab>`).
 
 ## The `@memory` tool
 
@@ -264,23 +253,6 @@ opts.memory = {
 }
 ```
 
-#### 🔄 Title Refresh Feature
-
-The extension can automatically refresh chat titles as conversations evolve:
-
-- **`refresh_every_n_prompts`**: Set to refresh the title after every N user prompts (e.g., 3 means refresh after the 3rd, 6th, 9th user message)
-- **`max_refreshes`**: Limits how many times a title can be refreshed to avoid excessive API calls
-- When refreshing, the system considers recent conversation context (both user and assistant messages) and the original title
-- Individual messages are truncated at 1000 characters with a `[truncated]` indicator
-- Total conversation context is limited to 10,000 characters with a `[conversation truncated]` indicator
-
-Example configuration for title refresh:
-```lua
-title_generation_opts = {
-    refresh_every_n_prompts = 3, -- Refresh after every 3rd user prompt
-    max_refreshes = 10,           -- Allow up to 10 refreshes per chat
-}
-```
 
 #### 🔄 Title Refresh Feature
 
@@ -341,7 +313,6 @@ The history extension exports the following functions that can be accessed via `
 ```lua
 -- Chat Management
 get_location(): string?                           -- Get storage location
-
 
 -- Save a chat to storage (uses last chat if none provided) 
 save_chat(chat?: CodeCompanion.Chat)
