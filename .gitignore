@@ -6,3 +6,5 @@ wiki/
 .r*
 deps/
 /result
+
+doc/tags*

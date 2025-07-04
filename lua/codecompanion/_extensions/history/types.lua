@@ -44,9 +44,10 @@
 ---@field save_chat_keymap? string | table Keymap to save the current chat
 ---@field save_chat_keymap_description? string Description for the save chat keymap (for which-key integration)
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
----@field picker_keymaps? {rename?: table, delete?: table}
 ---@field summary? CodeCompanion.History.SummaryOpts Summary-related options
 ---@field memory? CodeCompanion.History.MemoryOpts
+---@field picker_keymaps? {rename?: table, delete?: table, duplicate?: table}
+---@field chat_filter? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Filter function for browsing chats
 
 ---@class CodeCompanion.History.ChatMessage
 ---@field role string
@@ -67,7 +68,8 @@
 ---@field name? string
 ---@field cycle number
 ---@field title_refresh_count? number
----
+---@field cwd string Current working directory when chat was saved
+---@field project_root string Project root directory when chat was saved
 
 ---@class CodeCompanion.History.ChatIndexData
 ---@field title string
@@ -77,6 +79,8 @@
 ---@field adapter string
 ---@field message_count number
 ---@field token_estimate number
+---@field cwd string Current working directory when chat was saved
+---@field project_root string Project root directory when chat was saved
 
 ---@class CodeCompanion.History.SummaryGenerationOpts
 ---@field adapter? string The adapter to use for summary generation
@@ -85,6 +89,14 @@
 ---@field include_references? boolean Include user messages with references (slash commands, variables) (default: true)
 ---@field include_tool_outputs? boolean Include tool execution results in summary context (default: true)
 ---@field system_prompt? string|fun(): string Custom system prompt for summarization (can be a string or function)
+
+---@class CodeCompanion.History.UIHandlers
+---@field on_preview fun(chat_data: CodeCompanion.History.ChatData): string[]
+---@field on_delete fun(chat_data: CodeCompanion.History.ChatData|CodeCompanion.History.ChatData[]): nil
+---@field on_select fun(chat_data: CodeCompanion.History.ChatData): nil
+---@field on_open fun(): nil
+---@field on_rename fun(chat_data: CodeCompanion.History.ChatData): nil
+---@field on_duplicate? fun(chat_data: CodeCompanion.History.ChatData): nil
 
 ---@class CodeCompanion.History.SummaryData
 ---@field summary_id string
@@ -105,13 +117,6 @@
 ---@class CodeCompanion.History.EntryItem : CodeCompanion.History.ChatIndexData, CodeCompanion.History.SummaryIndexData
 ---@field name string Display name for the item
 ---@field has_summary boolean Flag indicating if the item has an associated summary (for chats only)
-
----@class CodeCompanion.History.UIHandlers
----@field on_preview fun(entry:CodeCompanion.History.EntryItem): string[]
----@field on_delete fun(entry: CodeCompanion.History.EntryItem):nil
----@field on_select fun(entry: CodeCompanion.History.EntryItem):nil
----@field on_open fun():nil
----@field on_rename fun(entry: CodeCompanion.History.EntryItem, new_title:string): nil
 
 ---@class CodeCompanion.History.BufferInfo
 ---@field bufnr number

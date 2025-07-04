@@ -60,42 +60,33 @@ function FzfluaPicker:browse()
                 end
 
                 local selection = decode(selections[1])
-
-                -- Prompt for new title
-                vim.ui.input({
-                    prompt = "New title: ",
-                    default = self:get_item_title(selection),
-                }, function(new_title)
-                    if new_title and vim.trim(new_title) ~= "" then
-                        self.config.handlers.on_rename(selection, new_title)
-                        self.config.handlers.on_open()
-                    end
-                end)
+                self.config.handlers.on_rename(selection)
             end,
             -- Delete item
             [conv(self.config.keymaps.delete.i)] = function(selections)
                 if #selections == 0 then
                     return
                 end
-                -- Confirm deletion if multiple items selected
-                if #selections > 1 then
-                    local confirm = vim.fn.confirm(
-                        "Are you sure you want to delete "
-                            .. #selections
-                            .. " "
-                            .. self:get_item_name_plural()
-                            .. "? (y/n)",
-                        "&Yes\n&No"
-                    )
-                    if confirm ~= 1 then
-                        return
-                    end
-                end
-                -- Delete all selected items
+
+                -- Extract chat data from selections
+                local chats_to_delete = {}
                 for _, selection in ipairs(selections) do
-                    self.config.handlers.on_delete(decode(selection))
+                    table.insert(chats_to_delete, decode(selection))
                 end
-                self.config.handlers.on_open()
+
+                self.config.handlers.on_delete(chats_to_delete)
+            end,
+            -- Duplicate chat
+            [conv(self.config.keymaps.duplicate.i)] = function(selections)
+                if #selections == 0 then
+                    return
+                end
+                if #selections > 1 then
+                    return vim.notify("Can duplicate only one chat at a time", vim.log.levels.WARN)
+                end
+
+                local selection = decode(selections[1])
+                self.config.handlers.on_duplicate(selection)
             end,
         },
         previewer = {

@@ -279,16 +279,17 @@ function UI:_open_items(item_type, items_data, handlers, current_item_id)
         :browse()
 end
 
-function UI:open_saved_chats()
+---@param filter_fn? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Optional filter function
+function UI:open_saved_chats(filter_fn)
     local codecompanion = require("codecompanion")
     local last_chat = codecompanion.last_chat() --[[@as CodeCompanion.History.Chat?]]
 
-    self:_open_items("chat", self.storage:get_chats(), {
+    self:_open_items("chat", self.storage:get_chats(filter_fn), {
         on_open = function()
             log:trace("Opening saved chats picker")
-            self:open_saved_chats()
+            self:open_saved_chats(filter_fn)
         end,
-        ---@param chat_data CodeCompanion.History.ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatData
         ---@return string[] lines
         on_preview = function(chat_data)
             -- Load full chat data for preview
@@ -300,34 +301,118 @@ function UI:open_saved_chats()
                 return { "Chat data not available" }
             end
         end,
-        ---@param chat_data CodeCompanion.History.ChatIndexData
-        on_delete = function(chat_data)
-            log:trace("Deleting chat: %s", chat_data.save_id)
-            self.storage:delete_chat(chat_data.save_id)
-        end,
-        ---@param chat_data CodeCompanion.History.ChatIndexData
-        ---@param new_title string
-        on_rename = function(chat_data, new_title)
-            log:trace("Renaming chat: %s -> %s", chat_data.save_id, new_title)
-            self.storage:rename_chat(chat_data.save_id, new_title)
-            local found_bufnr = nil
-            for _, bufnr in ipairs(_G.codecompanion_buffers or {}) do
-                local chat = codecompanion.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat?]]
-                if chat and chat.opts.save_id == chat_data.save_id then
-                    found_bufnr = bufnr
-                    chat.opts.title = new_title
-                    self:_set_buf_title(bufnr, new_title)
-                    break
-                end
-            end
-            utils.fire("TitleRenamed", {
-                bufnr = found_bufnr,
-                title = new_title,
-            })
-        end,
-        ---@param chat_data CodeCompanion.History.ChatIndexData
+        ---@param chat_data CodeCompanion.History.ChatData
         on_select = function(chat_data)
             self:_handle_on_select(chat_data.save_id)
+        end,
+        ---@param chat_data CodeCompanion.History.ChatData|CodeCompanion.History.ChatData[]
+        on_delete = function(chat_data)
+            -- Handle both single chat and array of chats
+            local chats_to_delete = {}
+            if type(chat_data) == "table" and chat_data.save_id then
+                -- Single chat
+                chats_to_delete = { chat_data }
+            elseif type(chat_data) == "table" and #chat_data > 0 then
+                -- Array of chats
+                chats_to_delete = chat_data
+            else
+                vim.notify("Invalid chat data for deletion", vim.log.levels.ERROR)
+                return
+            end
+
+            log:trace("Deleting %d chat(s)", #chats_to_delete)
+
+            -- Always ask for confirmation
+            local chat_count = #chats_to_delete
+            local confirmation_message
+            if chat_count == 1 then
+                confirmation_message = string.format('Delete chat "%s"?', chats_to_delete[1].title or "Untitled")
+            else
+                confirmation_message = string.format("Delete %d chats?", chat_count)
+            end
+
+            local choice = vim.fn.confirm(confirmation_message, "&Yes\n&No", 2)
+            if choice ~= 1 then
+                return -- User cancelled
+            end
+
+            -- Delete all selected chats
+            local deleted_count = 0
+            for _, chat in ipairs(chats_to_delete) do
+                if self.storage:delete_chat(chat.save_id) then
+                    deleted_count = deleted_count + 1
+                end
+            end
+
+            if deleted_count > 0 then
+                local message = deleted_count == 1 and "Chat deleted successfully"
+                    or string.format("%d chats deleted successfully", deleted_count)
+                vim.notify(message, vim.log.levels.INFO)
+                self:open_saved_chats(filter_fn)
+            else
+                vim.notify("Failed to delete chats", vim.log.levels.ERROR)
+            end
+        end,
+        ---@param chat_data CodeCompanion.History.ChatData
+        on_rename = function(chat_data)
+            log:trace("Renaming chat: %s", chat_data.save_id)
+
+            -- Prompt for new title with current title as default
+            vim.ui.input({
+                prompt = "Rename to: ",
+                default = chat_data.title or "",
+            }, function(new_title)
+                if not new_title or vim.trim(new_title) == "" then
+                    return -- User cancelled or entered empty title
+                end
+
+                local success = self.storage:rename_chat(chat_data.save_id, new_title)
+                if success then
+                    -- Update any open chat buffers with this save_id
+                    local found_bufnr = nil
+                    for _, bufnr in ipairs(_G.codecompanion_buffers or {}) do
+                        local chat = codecompanion.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat?]]
+                        if chat and chat.opts.save_id == chat_data.save_id then
+                            found_bufnr = bufnr
+                            chat.opts.title = new_title
+                            self:_set_buf_title(bufnr, new_title)
+                            break
+                        end
+                    end
+                    utils.fire("TitleRenamed", {
+                        bufnr = found_bufnr,
+                        title = new_title,
+                    })
+                    vim.notify("Chat renamed successfully", vim.log.levels.INFO)
+                    self:open_saved_chats(filter_fn)
+                else
+                    vim.notify("Failed to rename chat", vim.log.levels.ERROR)
+                end
+            end)
+        end,
+        ---@param chat_data CodeCompanion.History.ChatData
+        on_duplicate = function(chat_data)
+            log:trace("Duplicating chat: %s", chat_data.save_id)
+
+            -- Prompt for new title with current title as default
+            vim.ui.input({
+                prompt = "Duplicate as: ",
+                default = chat_data.title or "",
+            }, function(new_title)
+                -- If cancelled or empty, append (1) to original title
+                if not new_title or vim.trim(new_title) == "" then
+                    local original_title = chat_data.title or "Untitled"
+                    new_title = original_title .. " (1)"
+                end
+
+                local new_save_id = self.storage:duplicate_chat(chat_data.save_id, new_title)
+                if new_save_id then
+                    vim.notify("Chat duplicated successfully", vim.log.levels.INFO)
+                    self:open_saved_chats(filter_fn)
+                else
+                    vim.notify("Failed to duplicate chat", vim.log.levels.ERROR)
+                end
+            end)
         end,
     }, last_chat and last_chat.opts.save_id)
 end
@@ -390,12 +475,7 @@ function UI:open_summaries()
             vim.notify("Summary deletion not yet implemented", vim.log.levels.WARN)
         end,
         ---@param summary_data CodeCompanion.History.SummaryIndexData
-        ---@param new_title string
-        on_rename = function(summary_data, new_title)
-            log:trace("Renaming summary: %s -> %s", summary_data.summary_id, new_title)
-            -- Note: We'd need to implement rename_summary in storage
-            vim.notify("Summary renaming not yet implemented", vim.log.levels.WARN)
-        end,
+        on_rename = function(summary_data) end,
         ---@param summary_data CodeCompanion.History.SummaryIndexData
         on_select = function(summary_data)
             log:trace("Selected summary: %s", summary_data.summary_id)

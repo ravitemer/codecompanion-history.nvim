@@ -48,44 +48,24 @@ function SnacksPicker:browse()
                 end
                 local selection = selections[1]
                 picker:close()
-
-                -- Prompt for new title
-                vim.ui.input({
-                    prompt = "New title: ",
-                    default = self:get_item_title(selection),
-                }, function(new_title)
-                    if new_title and vim.trim(new_title) ~= "" then
-                        self.config.handlers.on_rename(selection, new_title)
-                        self.config.handlers.on_open()
-                    end
-                end)
+                self.config.handlers.on_rename(selection)
             end,
             delete_item = function(picker)
                 local selections = picker:selected({ fallback = true })
                 if #selections == 0 then
                     return
                 end
-
-                -- Confirm deletion for multiple items
-                if #selections > 1 then
-                    local choice = vim.fn.confirm(
-                        "Are you sure you want to delete "
-                            .. #selections
-                            .. " "
-                            .. self:get_item_name_plural()
-                            .. "? (y/n)",
-                        "&Yes\n&No"
-                    )
-                    if choice ~= 1 then
-                        return
-                    end
-                end
-
-                for _, selected in ipairs(selections) do
-                    self.config.handlers.on_delete(selected)
-                end
                 picker:close()
-                self.config.handlers.on_open()
+                self.config.handlers.on_delete(selections)
+            end,
+            duplicate_chat = function(picker)
+                local selections = picker:selected({ fallback = true })
+                if #selections ~= 1 then
+                    return vim.notify("Can duplicate only one chat at a time", vim.log.levels.WARN)
+                end
+                local selection = selections[1]
+                picker:close()
+                self.config.handlers.on_duplicate(selection)
             end,
         },
 
@@ -96,6 +76,8 @@ function SnacksPicker:browse()
                     [self.config.keymaps.delete.i] = "delete_item",
                     [self.config.keymaps.rename.n] = "rename_item",
                     [self.config.keymaps.rename.i] = "rename_item",
+                    [self.config.keymaps.duplicate.n] = "duplicate_chat",
+                    [self.config.keymaps.duplicate.i] = "duplicate_chat",
                 },
             },
             list = {
@@ -104,6 +86,8 @@ function SnacksPicker:browse()
                     [self.config.keymaps.delete.i] = "delete_item",
                     [self.config.keymaps.rename.n] = "rename_item",
                     [self.config.keymaps.rename.i] = "rename_item",
+                    [self.config.keymaps.duplicate.n] = "duplicate_chat",
+                    [self.config.keymaps.duplicate.i] = "duplicate_chat",
                 },
             },
         },

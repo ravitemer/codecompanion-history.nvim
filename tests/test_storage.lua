@@ -633,4 +633,123 @@ T["Error Handling"]["handles invalid UTF-8 content"] = function()
     eq(true, result.content_preserved)
 end
 
+-- Duplicate Operations Tests
+T["Duplicate Operations"] = new_set()
+
+T["Duplicate Operations"]["duplicates chat successfully"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        local original_chat = h.create_test_chat("test_original")
+        test_storage:_save_chat_to_file(original_chat)
+        test_storage:_update_index_entry(original_chat)
+        
+        -- Duplicate the chat with custom title
+        local new_save_id = test_storage:duplicate_chat("test_original", "Duplicated Chat")
+        local duplicated_chat = test_storage:load_chat(new_save_id)
+        local index = test_storage:get_chats()
+        
+        return {
+            new_save_id = new_save_id,
+            duplicated_title = duplicated_chat and duplicated_chat.title,
+            original_exists = index["test_original"] ~= nil,
+            duplicate_exists = index[new_save_id] ~= nil,
+            message_count_match = duplicated_chat and #duplicated_chat.messages == 3,
+            different_save_ids = duplicated_chat and duplicated_chat.save_id ~= "test_original",
+            title_refresh_count_reset = duplicated_chat and duplicated_chat.title_refresh_count == 0
+        }
+    ]])
+
+    eq(true, result.new_save_id ~= nil)
+    eq("Duplicated Chat", result.duplicated_title)
+    eq(true, result.original_exists)
+    eq(true, result.duplicate_exists)
+    eq(true, result.message_count_match)
+    eq(true, result.different_save_ids)
+    eq(true, result.title_refresh_count_reset)
+end
+
+T["Duplicate Operations"]["duplicates chat with auto-generated title"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        local original_chat = h.create_test_chat("test_auto_title")
+        original_chat.title = "Original Title"
+        test_storage:_save_chat_to_file(original_chat)
+        test_storage:_update_index_entry(original_chat)
+        
+        -- Duplicate without providing custom title
+        local new_save_id = test_storage:duplicate_chat("test_auto_title")
+        local duplicated_chat = test_storage:load_chat(new_save_id)
+        
+        return {
+            duplicated_title = duplicated_chat and duplicated_chat.title,
+            has_copy_suffix = duplicated_chat and duplicated_chat.title:find("%(1%)") ~= nil
+        }
+    ]])
+
+    eq("Original Title (1)", result.duplicated_title)
+    eq(true, result.has_copy_suffix)
+end
+
+T["Duplicate Operations"]["handles non-existent chat duplication"] = function()
+    local result = child.lua([[              
+        -- Try to duplicate non-existent chat
+        local new_save_id = test_storage:duplicate_chat("does_not_exist")
+        return { new_save_id = new_save_id }
+    ]])
+
+    eq(nil, result.new_save_id)
+end
+
+T["Duplicate Operations"]["preserves all chat data"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        local original_chat = h.create_test_chat("test_preserve")
+        original_chat.refs = {{ id = "test_ref", content = "test content" }}
+        original_chat.schemas = { test_schema = "schema_data" }
+        original_chat.in_use = { test_tool = true }
+        original_chat.cycle = 5
+        
+        test_storage:_save_chat_to_file(original_chat)
+        test_storage:_update_index_entry(original_chat)
+        
+        -- Duplicate the chat
+        local new_save_id = test_storage:duplicate_chat("test_preserve", "Preserved Data")
+        local duplicated_chat = test_storage:load_chat(new_save_id)
+        
+        return {
+            refs_preserved = duplicated_chat and #duplicated_chat.refs == 1,
+            schemas_preserved = duplicated_chat and duplicated_chat.schemas.test_schema == "schema_data",
+            in_use_preserved = duplicated_chat and duplicated_chat.in_use.test_tool == true,
+            cycle_preserved = duplicated_chat and duplicated_chat.cycle == 5,
+            messages_preserved = duplicated_chat and #duplicated_chat.messages == 3
+        }
+    ]])
+
+    eq(true, result.refs_preserved)
+    eq(true, result.schemas_preserved)
+    eq(true, result.in_use_preserved)
+    eq(true, result.cycle_preserved)
+    eq(true, result.messages_preserved)
+end
+
+T["Duplicate Operations"]["handles duplicate with untitled chat"] = function()
+    local result = child.lua([[              
+        local h = require("tests.helpers")
+        local original_chat = h.create_test_chat("test_untitled")
+        original_chat.title = nil -- Remove title
+        test_storage:_save_chat_to_file(original_chat)
+        test_storage:_update_index_entry(original_chat)
+        
+        -- Duplicate chat without title
+        local new_save_id = test_storage:duplicate_chat("test_untitled")
+        local duplicated_chat = test_storage:load_chat(new_save_id)
+        
+        return {
+            duplicated_title = duplicated_chat and duplicated_chat.title
+        }
+    ]])
+
+    eq("Untitled (1)", result.duplicated_title)
+end
+
 return T

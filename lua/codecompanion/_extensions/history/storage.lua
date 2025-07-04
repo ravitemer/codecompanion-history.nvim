@@ -151,15 +151,18 @@ function Storage:_update_index_entry(chat_data)
         adapter = chat_data.adapter or "unknown",
         message_count = message_count,
         token_estimate = token_estimate,
+        cwd = chat_data.cwd,
+        project_root = chat_data.project_root,
     }
 
     -- Write updated index
     return utils.write_json(self.index_path, utils.remove_functions(index))
 end
 
----Load all chats from storage (index only)
+---Load all chats from storage (index only) with optional filtering
+---@param filter_fn? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Optional filter function
 ---@return table<string, CodeCompanion.History.ChatIndexData>
-function Storage:get_chats()
+function Storage:get_chats(filter_fn)
     log:trace("Loading chat index")
     local result = utils.read_json(self.index_path)
     if not result.ok then
@@ -173,7 +176,22 @@ function Storage:get_chats()
         end
     end
 
-    return result.data or {}
+    local all_chats = result.data or {}
+
+    -- If no filter provided, return all chats
+    if not filter_fn then
+        return all_chats
+    end
+
+    -- Apply filter and return filtered chats
+    local filtered_chats = {}
+    for id, chat_data in pairs(all_chats) do
+        if filter_fn(chat_data) then
+            filtered_chats[id] = chat_data
+        end
+    end
+
+    return filtered_chats
 end
 
 ---Load a specific chat by ID
@@ -252,6 +270,7 @@ function Storage:save_chat(chat)
     end
 
     log:trace("Saving chat: %s", chat.opts.save_id)
+    local cwd = chat.opts.cwd or vim.fn.getcwd()
     -- Create chat data object requiring valid types
     ---@type CodeCompanion.History.ChatData
     local chat_data = {
@@ -266,6 +285,8 @@ function Storage:save_chat(chat)
         in_use = (chat.tools and chat.tools.in_use) or {},
         cycle = chat.cycle or 1,
         title_refresh_count = chat.opts.title_refresh_count or 0,
+        cwd = cwd,
+        project_root = utils.find_project_root(cwd),
     }
 
     -- Save chat to file
@@ -321,11 +342,12 @@ function Storage:delete_chat(id)
     return true
 end
 
----Get the most recently updated chat from storage
+---Get the most recently updated chat from storage with optional filtering
+---@param filter_fn? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Optional filter function
 ---@return CodeCompanion.History.ChatData|nil
-function Storage:get_last_chat()
+function Storage:get_last_chat(filter_fn)
     log:debug("Getting most recent chat")
-    local index = self:get_chats()
+    local index = self:get_chats(filter_fn)
     if vim.tbl_isempty(index) then
         return nil
     end
@@ -460,6 +482,54 @@ function Storage:load_summary(summary_id)
     local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
     local result = utils.read_file(summary_path)
     return result.ok and result.data or nil
+end
+
+---Duplicate a chat in storage with a new title
+---@param original_id string The original chat ID to duplicate
+---@param new_title? string Optional new title (defaults to "Title (1)")
+---@return string|nil new_save_id The new chat's save_id if successful
+function Storage:duplicate_chat(original_id, new_title)
+    log:trace("Duplicating chat: %s", original_id)
+
+    -- Load original chat
+    local original_chat = self:load_chat(original_id)
+    if not original_chat then
+        log:error("Cannot duplicate: original chat not found: %s", original_id)
+        return nil
+    end
+
+    -- Generate new save_id
+    local new_save_id = tostring(os.time() * 1000 + math.random(1000))
+
+    -- Generate appropriate title if not provided
+    if not new_title then
+        local original_title = original_chat.title or "Untitled"
+        new_title = original_title .. " (1)"
+    end
+
+    -- Create duplicated chat data
+    local duplicated_chat = vim.deepcopy(original_chat)
+    duplicated_chat.save_id = new_save_id
+    duplicated_chat.title = new_title
+    duplicated_chat.updated_at = os.time()
+    duplicated_chat.title_refresh_count = 0 -- Reset refresh count for new chat
+
+    -- Save duplicated chat
+    local save_result = self:_save_chat_to_file(duplicated_chat)
+    if not save_result.ok then
+        log:error("Failed to save duplicated chat: %s", save_result.error)
+        return nil
+    end
+
+    -- Update index
+    local index_result = self:_update_index_entry(duplicated_chat)
+    if not index_result.ok then
+        log:error("Failed to update index for duplicated chat: %s", index_result.error)
+        return nil
+    end
+
+    log:debug("Successfully duplicated chat %s -> %s", original_id, new_save_id)
+    return new_save_id
 end
 
 return Storage

@@ -15,6 +15,7 @@ local utils = require("codecompanion._extensions.history.utils")
 ---@field save_id string?
 ---@field title string?
 ---@field title_refresh_count integer? Number of times the title has been refreshed
+---@field cwd string? Current working directory when chat was saved
 
 ---@class CodeCompanion.History.Chat : CodeCompanion.Chat
 ---@field opts CodeCompanion.History.ChatArgs
@@ -50,6 +51,10 @@ local default_opts = {
         delete = {
             n = "d",
             i = "<M-d>",
+        },
+        duplicate = {
+            n = "<C-y>",
+            i = "<C-y>",
         },
     },
     ---Automatically generate titles for new chats
@@ -97,6 +102,8 @@ local default_opts = {
         notify = true,
         index_on_startup = false,
     },
+    ---Filter function for browsing chats (defaults to show all chats)
+    chat_filter = nil,
 }
 
 ---@type CodeCompanion.History|nil
@@ -124,7 +131,7 @@ end
 
 function History:_create_commands()
     vim.api.nvim_create_user_command("CodeCompanionHistory", function()
-        self.ui:open_saved_chats()
+        self.ui:open_saved_chats(self.opts.chat_filter)
     end, {
         desc = "Open saved chats",
     })
@@ -156,7 +163,7 @@ function History:_setup_autocommands()
             if self.should_load_last_chat then
                 log:trace("Attempting to load last chat")
                 self.should_load_last_chat = false
-                local last_saved_chat = self.storage:get_last_chat()
+                local last_saved_chat = self.storage:get_last_chat(self.opts.chat_filter)
                 if last_saved_chat then
                     log:trace("Restoring last saved chat")
                     chat:close()
@@ -357,7 +364,7 @@ function History:_setup_keymaps()
             modes = form_modes(self.opts.keymap),
             description = self.opts.keymap_description,
             callback = function(_)
-                self.ui:open_saved_chats()
+                self.ui:open_saved_chats(self.opts.chat_filter)
             end,
         },
         ["Save Current Chat"] = {
@@ -473,13 +480,23 @@ return {
             history_instance.storage:save_chat(chat)
         end,
 
-        --- Loads chats metadata from the index, you need to use load_chat() to get the actual saved chat data
+        ---Browse chats with custom filter function
+        ---@param filter_fn? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Optional filter function
+        browse_chats = function(filter_fn)
+            if not history_instance then
+                return
+            end
+            history_instance.ui:open_saved_chats(filter_fn)
+        end,
+
+        --- Loads chats metadata from the index with optional filtering
+        ---@param filter_fn? fun(chat_data: CodeCompanion.History.ChatIndexData): boolean Optional filter function
         ---@return table<string, CodeCompanion.History.ChatIndexData>
-        get_chats = function()
+        get_chats = function(filter_fn)
             if not history_instance then
                 return {}
             end
-            return history_instance.storage:get_chats()
+            return history_instance.storage:get_chats(filter_fn)
         end,
 
         --- Load a specific chat
@@ -537,6 +554,16 @@ return {
                 return nil
             end
             return history_instance.storage:load_summary(summary_id)
+        end,
+        ---Duplicate a chat
+        ---@param save_id string ID from chat.opts.save_id to duplicate
+        ---@param new_title? string Optional new title (defaults to "Title (1)")
+        ---@return string|nil new_save_id The new chat's save_id if successful
+        duplicate_chat = function(save_id, new_title)
+            if not history_instance then
+                return nil
+            end
+            return history_instance.storage:duplicate_chat(save_id, new_title)
         end,
     },
     --for testing

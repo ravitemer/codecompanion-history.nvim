@@ -15,14 +15,18 @@ A history management extension for [codecompanion.nvim](https://codecompanion.ol
 
 ## ✨ Features
 
-### 💾 Chat Management
-- **Flexible chat saving**: Automatic session saving (can be disabled) + manual save with dedicated keymap
-- **Smart title generation**: Auto-generate meaningful titles for chats
-- **Continue conversations**: Resume from where you left off
-- **Browse with preview**: Navigate saved chats with content preview
-- **Multiple picker interfaces**: Telescope, Snacks, FZF-Lua, and default vim.ui.select
-- **Optional chat expiration**: Automatically clean up old chats
-- **Complete session restoration**: Restore with full context and tools state
+### 🤖 Chat Management
+- 💾 Flexible chat saving:
+  - Automatic session saving (can be disabled)
+  - Manual save with dedicated keymap
+- 🎯 Smart title generation for chats
+- 🔄 Continue from where you left
+- 📚 Browse saved chats with preview
+- 🔍 Multiple picker interfaces
+- ⌛ Optional automatic chat expiration
+- ⚡ Restore chat sessions with full context and tools state
+- 🏢 **Project-aware filtering**: Filter chats by workspace/project context
+- 📋 **Chat duplication**: Easily duplicate chats to create variations or backups
 
 ### 📝 Summary System
 - **Manual summary generation**: Create summaries for any chat with `gcs`
@@ -107,8 +111,13 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface (auto resolved to a valid picker)
                 picker = "telescope", --- ("telescope", "snacks", "fzf-lua", or "default") 
-                
-                -- Title generation
+                -- Customize picker keymaps (optional)
+                picker_keymaps = {
+                    rename = { n = "r", i = "<M-r>" },
+                    delete = { n = "d", i = "<M-d>" },
+                    duplicate = { n = "<C-y>", i = "<C-y>" },
+                },
+                ---Automatically generate titles for new chats
                 auto_generate_title = true,
                 title_generation_opts = {
                     ---Adapter for generating titles (defaults to current chat adapter) 
@@ -162,6 +171,8 @@ require("codecompanion").setup({
                 delete_on_clearing_chat = false,
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
                 enable_logging = false,
+                ---Optional filter function to control which chats are shown when browsing
+                chat_filter = nil, -- function(chat_data) return boolean end
             }
         }
     }
@@ -201,9 +212,11 @@ Actions in history browser:
 - Normal mode:
   - `d` - Delete selected chat(s)
   - `r` - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 - Insert mode:
   - `<M-d>` (Alt+d) - Delete selected chat(s)
   - `<M-r>` (Alt+r) - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 
 #### 📝 Summary Browser
 
@@ -287,6 +300,40 @@ title_generation_opts = {
 }
 ```
 
+#### 🏢 Project-Aware Chat Filtering
+
+The extension supports flexible chat filtering to help you focus on relevant conversations:
+
+**Configurable Filtering:**
+```lua
+chat_filter = function(chat_data)
+    return chat_data.cwd == vim.fn.getcwd()
+end
+
+-- Recent chats only (last 7 days)
+chat_filter = function(chat_data)
+    local seven_days_ago = os.time() - (7 * 24 * 60 * 60)
+    return chat_data.updated_at >= seven_days_ago
+end
+```
+
+**Chat Index Data Structure:**
+Each chat index entry (used in filtering) includes the following information:
+```lua
+-- ChatIndexData - lightweight metadata used for browsing and filtering
+{
+    save_id = "1672531200",                 -- Unique chat identifier
+    title = "Debug API endpoint",           -- Chat title (auto-generated or custom)
+    cwd = "/home/user/my-project",          -- Working directory when saved
+    project_root = "/home/user/my-project", -- Detected project root
+    adapter = "openai",                     -- LLM adapter used
+    model = "gpt-4",                        -- Model name
+    updated_at = 1672531200,                -- Unix timestamp of last update
+    message_count = 15,                     -- Number of messages in chat
+    token_estimate = 3420,                  -- Estimated token count
+}
+```
+
 #### 🔧 API
 
 The history extension exports the following functions that can be accessed via `require("codecompanion").extensions.history`:
@@ -294,32 +341,63 @@ The history extension exports the following functions that can be accessed via `
 ```lua
 -- Chat Management
 get_location(): string?                           -- Get storage location
-save_chat(chat?: CodeCompanion.Chat)             -- Save chat to storage
-get_chats(): table<string, ChatIndexData>        -- Get all chat metadata
-load_chat(save_id: string): ChatData?            -- Load specific chat
-delete_chat(save_id: string): boolean            -- Delete chat
+
+
+-- Save a chat to storage (uses last chat if none provided) 
+save_chat(chat?: CodeCompanion.Chat)
+
+-- Browse chats with custom filter function
+browse_chats(filter_fn?: function(ChatIndexData): boolean)
+
+-- Get metadata for all saved chats with optional filtering
+get_chats(filter_fn?: function(ChatIndexData): boolean): table<string, ChatIndexData>
+
+-- Load a specific chat by its save_id
+load_chat(save_id: string): ChatData?
+
+-- Delete a chat by its save_id
+delete_chat(save_id: string): boolean
+
+-- Duplicate a chat by its save_id
+duplicate_chat(save_id: string, new_title?: string): string?
+
 
 -- Summary Management  
-generate_summary(chat?: CodeCompanion.Chat)      -- Generate summary for chat
-preview_summary(chat?: CodeCompanion.Chat)       -- Preview/edit summary
-get_summaries(): table<string, SummaryIndexData> -- Get all summary metadata
-load_summary(summary_id: string): string?        -- Load summary content
+--- Generate a summary for the current chat 
+generate_summary(chat?: CodeCompanion.Chat)      
+
+--- Get summaries index
+get_summaries(): table<string, SummaryIndexData> 
+
+--- Load summary 
+load_summary(summary_id: string): string?        
 ```
 
 Example usage:
 ```lua
 local history = require("codecompanion").extensions.history
 
--- Chat operations
+-- Browse chats with project filter
+history.browse_chats(function(chat_data)
+    return chat_data.project_root == utils.find_project_root()
+end)
+
+-- Get all saved chats metadata
 local chats = history.get_chats()
 local chat_data = history.load_chat("some_save_id")
 history.delete_chat("some_save_id")
 
+-- Duplicate a chat with custom title
+local new_save_id = history.duplicate_chat("some_save_id", "My Custom Copy")
+
+-- Duplicate a chat with auto-generated title (appends "(1)")
+local new_save_id = history.duplicate_chat("some_save_id")
 -- Summary operations
 history.generate_summary() -- generates for current chat
 local summaries = history.get_summaries()
 local summary_content = history.load_summary("some_save_id")
 history.preview_summary() -- opens summary for editing
+
 ```
 
 
