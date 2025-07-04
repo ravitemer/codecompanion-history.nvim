@@ -374,25 +374,12 @@ function History:_setup_keymaps()
         },
     }
 
+    local cc_config = require("codecompanion.config")
     -- Add all keymaps to codecompanion
     for name, keymap in pairs(keymaps) do
-        require("codecompanion.config").strategies.chat.keymaps[name] = keymap
+        cc_config.strategies.chat.keymaps[name] = keymap
     end
 end
-
--- ---@param chat Chat
--- function History:_subscribe_to_chat(chat)
---     -- Add subscription to save chat on every response from llm
---     chat.subscribers:subscribe({
---         --INFO:data field is needed
---         data = {
---             name = "save_messages_and_generate_title",
---         },
---         callback = function(chat_instance)
---             self.storage:save_chat(chat_instance)
---         end,
---     })
--- end
 
 ---@type CodeCompanion.Extension
 return {

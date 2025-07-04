@@ -90,12 +90,12 @@
 ---@field system_prompt? string|fun(): string Custom system prompt for summarization (can be a string or function)
 
 ---@class CodeCompanion.History.UIHandlers
----@field on_preview fun(chat_data: CodeCompanion.History.ChatData): string[]
----@field on_delete fun(chat_data: CodeCompanion.History.ChatData|CodeCompanion.History.ChatData[]): nil
----@field on_select fun(chat_data: CodeCompanion.History.ChatData): nil
+---@field on_preview fun(chat_data: CodeCompanion.History.EntryItem): string[]
+---@field on_delete fun(chat_data: CodeCompanion.History.EntryItem|CodeCompanion.History.EntryItem[]): nil
+---@field on_select fun(chat_data: CodeCompanion.History.EntryItem): nil
 ---@field on_open fun(): nil
----@field on_rename fun(chat_data: CodeCompanion.History.ChatData): nil
----@field on_duplicate? fun(chat_data: CodeCompanion.History.ChatData): nil
+---@field on_rename fun(chat_data: CodeCompanion.History.EntryItem): nil
+---@field on_duplicate? fun(chat_data: CodeCompanion.History.EntryItem): nil
 
 ---@class CodeCompanion.History.SummaryData
 ---@field summary_id string

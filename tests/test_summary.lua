@@ -1,16 +1,3 @@
--- Test file for the summary generator module
----@brief [[
---- Tests for summary generation functionality
----
---- This test suite verifies the functionality of the summary generator module in the
---- CodeCompanion history extension. It tests:
----
---- 1. Basic Summary Generation:
----    - Generation from chat messages
----    - Message filtering and processing
----    - Async callback handling
----]]
-
 local h = require("tests.helpers")
 local eq, new_set = MiniTest.expect.equality, MiniTest.new_set
 local T = new_set()

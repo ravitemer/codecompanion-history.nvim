@@ -146,7 +146,7 @@ require("codecompanion").setup({
                     generation_opts = {
                         adapter = nil, -- defaults to current chat adapter
                         model = nil, -- defaults to current chat model
-                        context_size = 90000, -- max tokens to include in a single summarization request
+                        context_size = 90000, -- max tokens that the model supports
                         include_references = true, -- include slash command content
                         include_tool_outputs = true, -- include tool execution results
                         system_prompt = nil, -- custom system prompt (string or function)
@@ -336,6 +336,9 @@ duplicate_chat(save_id: string, new_title?: string): string?
 -- Summary Management  
 --- Generate a summary for the current chat 
 generate_summary(chat?: CodeCompanion.Chat)      
+
+--- Delete a sumamry
+delete_summary(summary_id: string)      
 
 --- Get summaries index
 get_summaries(): table<string, SummaryIndexData> 

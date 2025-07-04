@@ -436,7 +436,7 @@ function UI:_handle_on_select(save_id)
     local codecompanion = require("codecompanion")
     log:trace("Selected chat: %s", save_id)
     local chat_module = require("codecompanion.strategies.chat")
-    local opened_chats = chat_module.buf_get_chat() --[[@as Array<CodeCompanion.Chat>]]
+    local opened_chats = chat_module.buf_get_chat()
     local active_chat = codecompanion.last_chat()
 
     for _, data in ipairs(opened_chats) do
