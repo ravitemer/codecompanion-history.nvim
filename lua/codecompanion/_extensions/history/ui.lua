@@ -420,7 +420,7 @@ Summary:
             content = content,
         }, {
             reference = ref_id,
-            visiable = false,
+            visible = false,
         })
         current_chat.references:add({
             id = ref_id,
