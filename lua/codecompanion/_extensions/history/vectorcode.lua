@@ -98,6 +98,8 @@ M.make_memory_tool = check_vectorcode_wrap(function(opts)
                             ),
                         },
                     },
+                    required = { "keywords" },
+                    additionalProperties = false,
                 },
             },
         },
@@ -118,7 +120,13 @@ M.make_memory_tool = check_vectorcode_wrap(function(opts)
                     "-n",
                     tostring(action.count or 10),
                 }
-                vim.list_extend(args, action.keywords)
+                if not vim.islist(action.keywords or {}) or #(action.keywords or {}) == 0 then
+                    return cb({
+                        status = "error",
+                        data = "You must provide a non-empty list of keywords to search for memories.",
+                    })
+                end
+                vim.list_extend(args, action.keywords or {})
                 cb = vim.schedule_wrap(cb)
                 vim.system(args, {}, function(out)
                     local ok, result = pcall(vim.json.decode, out.stdout)
