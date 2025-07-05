@@ -88,6 +88,7 @@
 ---@field include_references? boolean Include user messages with references (slash commands, variables) (default: true)
 ---@field include_tool_outputs? boolean Include tool execution results in summary context (default: true)
 ---@field system_prompt? string|fun(): string Custom system prompt for summarization (can be a string or function)
+---@field format_summary? fun(summary: string): string Custom function to format the summary before saving e.g to remove <think/> tags
 
 ---@class CodeCompanion.History.UIHandlers
 ---@field on_preview fun(chat_data: CodeCompanion.History.EntryItem): string[]

@@ -150,6 +150,7 @@ require("codecompanion").setup({
                         include_references = true, -- include slash command content
                         include_tool_outputs = true, -- include tool execution results
                         system_prompt = nil, -- custom system prompt (string or function)
+                        format_summary = nil, -- custom function to format generated summary e.g to remove <think/> tags from summary
                     },
                 },
                 

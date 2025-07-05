@@ -70,6 +70,12 @@ function SummaryGenerator:generate(chat, callback)
             return callback(nil, "Empty summary generated")
         end
 
+        if type(self.generation_opts.format_summary) == "function" then
+            final_summary = self.generation_opts.format_summary(final_summary)
+            if not final_summary or final_summary == "" then
+                return callback(nil, "Formatted summary is empty")
+            end
+        end
         -- Create complete summary object
         local summary = self:_create_summary_object(chat, project_root, final_summary)
         callback(summary, nil)

@@ -83,6 +83,7 @@ local default_opts = {
             include_references = true,
             include_tool_outputs = true,
             system_prompt = nil, -- uses default system prompt
+            format_summary = nil, -- e.g to remove thinking tags from summary
         },
     },
     ---On exiting and entering neovim, loads the last chat on opening chat
