@@ -66,6 +66,7 @@ local default_opts = {
     enable_logging = false,
     ---Filter function for browsing chats (defaults to show all chats)
     chat_filter = nil,
+    title_decorator = nil,
 }
 
 ---@type History|nil
@@ -189,6 +190,9 @@ function History:_setup_autocommands()
             local should_generate, is_refresh = self.title_generator:should_generate(chat)
             if should_generate then
                 self.title_generator:generate(chat, function(generated_title)
+                    if type(self.opts.title_decorator) == "function" then
+                        generated_title = self.opts.title_decorator(generated_title)
+                    end
                     if generated_title and generated_title ~= "" then
                         -- Always update buffer title for feedback
                         self.ui:_set_buf_title(chat.bufnr, generated_title)

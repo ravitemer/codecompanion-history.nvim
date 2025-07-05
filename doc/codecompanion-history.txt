@@ -1,4 +1,4 @@
-*codecompanion-history.txt*      For NVIM v0.8.0     Last change: 2025 June 24
+*codecompanion-history.txt*      For NVIM v0.8.0     Last change: 2025 July 05
 
 ==============================================================================
 Table of Contents                    *codecompanion-history-table-of-contents*
@@ -170,6 +170,11 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
                     enable_logging = false,
                     ---Optional filter function to control which chats are shown when browsing
                     chat_filter = nil, -- function(chat_data) return boolean end
+                    title_decorator = function(original_title)
+                        -- this can be a custom function that applies some custom
+                        -- actions to the title.
+                        return original_title
+                    end
                 }
             }
         }

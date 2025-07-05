@@ -124,6 +124,11 @@ require("codecompanion").setup({
                 enable_logging = false,
                 ---Optional filter function to control which chats are shown when browsing
                 chat_filter = nil, -- function(chat_data) return boolean end
+                title_decorator = function(original_title)
+                    -- this can be a custom function that applies some custom
+                    -- actions to the title.
+                    return original_title
+                end
             }
         }
     }

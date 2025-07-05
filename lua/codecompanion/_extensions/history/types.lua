@@ -28,6 +28,7 @@
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table, duplicate?: table}
 ---@field chat_filter? fun(chat_data: ChatIndexData): boolean Filter function for browsing chats
+---@field title_decorator? fun(original_title: string):string a function that applies a custom transformation to the title.
 
 ---@class Chat
 ---@field opts {title:string, title_refresh_count?: number, save_id: string}
