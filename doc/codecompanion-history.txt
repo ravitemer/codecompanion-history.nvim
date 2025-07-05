@@ -1,4 +1,4 @@
-*codecompanion-history.txt*      For NVIM v0.8.0     Last change: 2025 June 24
+*codecompanion-history.txt*      For NVIM v0.8.0     Last change: 2025 July 05
 
 ==============================================================================
 Table of Contents                    *codecompanion-history-table-of-contents*
@@ -8,8 +8,9 @@ Table of Contents                    *codecompanion-history-table-of-contents*
   - 📋 Requirements|codecompanion-history-codecompanion-history-extension-📋-requirements|
   - 📦 Installation|codecompanion-history-codecompanion-history-extension-📦-installation|
   - 🛠️ Usage|codecompanion-history-codecompanion-history-extension-🛠️-usage|
+  - The @memory tool|codecompanion-history-codecompanion-history-extension-the-@memory-tool|
   - ⚙️ How It Works|codecompanion-history-codecompanion-history-extension-⚙️-how-it-works|
-  - 📝 TODOs|codecompanion-history-codecompanion-history-extension-📝-todos|
+  - 🔮 Future Roadmap|codecompanion-history-codecompanion-history-extension-🔮-future-roadmap|
   - 🔌 Related Extensions|codecompanion-history-codecompanion-history-extension-🔌-related-extensions|
   - 🙏 Acknowledgements|codecompanion-history-codecompanion-history-extension-🙏-acknowledgements|
   - 📄 License|codecompanion-history-codecompanion-history-extension-📄-license|
@@ -29,6 +30,9 @@ restoring chat sessions.
 
 ✨ FEATURES*codecompanion-history-codecompanion-history-extension-✨-features*
 
+
+🤖 CHAT MANAGEMENT ~
+
 - 💾 Flexible chat saving:
     - Automatic session saving (can be disabled)
     - Manual save with dedicated keymap
@@ -40,6 +44,22 @@ restoring chat sessions.
 - ⚡ Restore chat sessions with full context and tools state
 - 🏢 **Project-aware filtering**: Filter chats by workspace/project context
 - 📋 **Chat duplication**: Easily duplicate chats to create variations or backups
+
+
+📝 SUMMARY SYSTEM ~
+
+- **Manual summary generation**: Create summaries for any chat with `gcs`
+- **Intelligent content processing**: Extracts meaningful conversation content while filtering noise
+- **Chunked summarization**: Handles large conversations by splitting into manageable chunks
+- **Customizable generation**: Configure adapter, model, and system prompts
+- **Summary browsing**: Dedicated browser with `gbs` to explore all summaries
+
+
+🧠 MEMORY SYSTEM (@MEMORY TOOL) ~
+
+- **Vector-based search**: Uses VectorCode CLI to index and search through chat summaries
+- **Automatic indexing**: Optionally index summaries as they are generated
+- **Smart integration**: Available as `@memory` tool in new chats when VectorCode is installed
 
 The following CodeCompanion features are preserved when saving and restoring
 chats:
@@ -101,6 +121,7 @@ restored 4. Previous system prompts are preserved
 
 - Neovim >= 0.8.0
 - codecompanion.nvim <https://codecompanion.olimorris.dev/>
+- VectorCode CLI <https://github.com/Davidyz/VectorCode> (optional, for `@memory` tool)
 - snacks.nvim <https://github.com/folke/snacks.nvim> (optional, for enhanced picker)
 - telescope.nvim <https://github.com/nvim-telescope/telescope.nvim> (optional, for enhanced picker)
 - fzf-lua <https://github.com/ibhagwan/fzf-lua> (optional, for enhanced picker)
@@ -142,6 +163,8 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
                     expiration_days = 0,
                     -- Picker interface (auto resolved to a valid picker)
                     picker = "telescope", --- ("telescope", "snacks", "fzf-lua", or "default") 
+                    ---Optional filter function to control which chats are shown when browsing
+                    chat_filter = nil, -- function(chat_data) return boolean end
                     -- Customize picker keymaps (optional)
                     picker_keymaps = {
                         rename = { n = "r", i = "<M-r>" },
@@ -160,16 +183,47 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
                         ---Maximum number of times to refresh the title (default: 3)
                         max_refreshes = 3,
                     },
-                    ---On exiting and entering neovim, loads the last chat on opening chat
+    
                     continue_last_chat = false,
-                    ---When chat is cleared with `gx` delete the chat from history
                     delete_on_clearing_chat = false,
-                    ---Directory path to save the chats
                     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
-                    ---Enable detailed logging for history extension
                     enable_logging = false,
-                    ---Optional filter function to control which chats are shown when browsing
-                    chat_filter = nil, -- function(chat_data) return boolean end
+    
+                    -- Summary system
+                    summary = {
+                        -- Keymap to generate summary for current chat (default: "gcs")
+                        create_summary_keymap = "gcs",
+                        -- Keymap to browse summaries (default: "gbs")
+                        browse_summaries_keymap = "gbs",
+                        
+                        generation_opts = {
+                            adapter = nil, -- defaults to current chat adapter
+                            model = nil, -- defaults to current chat model
+                            context_size = 90000, -- max tokens that the model supports
+                            include_references = true, -- include slash command content
+                            include_tool_outputs = true, -- include tool execution results
+                            system_prompt = nil, -- custom system prompt (string or function)
+                            format_summary = nil, -- custom function to format generated summary e.g to remove <think/> tags from summary
+                        },
+                    },
+                    
+                    -- Memory system (requires VectorCode CLI)
+                    memory = {
+                        -- Automatically index summaries when they are generated
+                        auto_create_memories_on_summary_generation = true,
+                        -- Path to the VectorCode executable
+                        vectorcode_exe = "vectorcode",
+                        -- Tool configuration
+                        tool_opts = { 
+                            -- Default number of memories to retrieve
+                            default_num = 10 
+                        },
+                        -- Enable notifications for indexing progress
+                        notify = true,
+                        -- Index all existing memories on startup
+                        -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
+                        index_on_startup = false,
+                    },
                 }
             }
         }
@@ -183,18 +237,25 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
 🎯 COMMANDS
 
 - `:CodeCompanionHistory` - Open the history browser
+- `:CodeCompanionSummaries` - Browse all summaries
 
 
 ⌨️ CHAT BUFFER KEYMAPS
 
-- `gh` - Open history browser (customizable via `opts.keymap`)
-- `sc` - Save current chat manually (customizable via `opts.save_chat_keymap`)
+**History Management:** - `gh` - Open history browser (customizable via
+`opts.keymap`) - `sc` - Save current chat manually (customizable via
+`opts.save_chat_keymap`)
+
+**Summary System:** - `gcs` - Generate summary for current chat (customizable
+via `opts.summary.create_summary_keymap`) - `gbs` - Browse saved summaries
+(customizable via `opts.summary.browse_summaries_keymap`)
 
 
 📚 HISTORY BROWSER
 
 The history browser shows all your saved chats with: - Title (auto-generated or
-custom) - Last updated time - Preview of chat contents
+custom) - Summary indicator (📝 icon for chats with summaries) - Token
+estimates and relative timestamps - Preview of chat contents
 
 Actions in history browser: - `<CR>` - Open selected chat - Normal mode: - `d`
 - Delete selected chat(s) - `r` - Rename selected chat - `<C-y>` - Duplicate
@@ -202,10 +263,44 @@ selected chat - Insert mode: - `<M-d>` (Alt+d) - Delete selected chat(s) -
 `<M-r>` (Alt+r) - Rename selected chat - `<C-y>` - Duplicate selected chat
 
 
-  Note: Delete, rename, and duplicate actions are only available in telescope,
-  snacks, and fzf-lua pickers. Multiple chats can be selected for deletion using
-  picker’s multi-select feature (press `<Tab>`). Duplication is limited to one
-  chat at a time.
+📝 SUMMARY BROWSER
+
+The summary browser shows all your generated summaries with: - Chat title (from
+original conversation) - Project context and relative timestamps - Preview of
+summary content
+
+Actions in summary browser: - `<CR>` - Add the summary to the current chat -
+Normal mode: - `d` - Delete selected summary(s) - Insert mode: - `<M-d>`
+(Alt+d) - Delete selected summary(s)
+
+
+THE @MEMORY TOOL*codecompanion-history-codecompanion-history-extension-the-@memory-tool*
+
+If you have installed the VectorCode <https://github.com/Davidyz/VectorCode>
+CLI, this plugin will use VectorCode to create an index for your chat summaries
+and create a tool called `@memory`. This tool gives the LLM the ability to
+search for (the summary of) previous chats so that you can refer to them in a
+new chat.
+
+Available options for the memory submodule:
+
+>lua
+    opts.memory = {
+        auto_create_memories_on_summary_generation = true,
+        -- path to the `vectorcode` executable
+        vectorcode_exe = "vectorcode",
+        tool_opts = { 
+            -- default number of memories to retrieve
+            default_num = 10 
+        },
+        -- whether to enable notification
+        notify = true,
+        -- whether to automatically update the index of all existing memories on startup
+        -- (requires VectorCode 0.6.12+ for efficient incremental indexing)
+        index_on_startup = false,
+    }
+<
+
 
 🔄 TITLE REFRESH FEATURE
 
@@ -271,8 +366,8 @@ The history extension exports the following functions that can be accessed via
 `require("codecompanion").extensions.history`:
 
 >lua
-    -- Get the storage location for saved chats
-    get_location(): string?
+    -- Chat Management
+    get_location(): string?                           -- Get storage location
     
     -- Save a chat to storage (uses last chat if none provided) 
     save_chat(chat?: CodeCompanion.Chat)
@@ -291,6 +386,20 @@ The history extension exports the following functions that can be accessed via
     
     -- Duplicate a chat by its save_id
     duplicate_chat(save_id: string, new_title?: string): string?
+    
+    
+    -- Summary Management  
+    --- Generate a summary for the current chat 
+    generate_summary(chat?: CodeCompanion.Chat)      
+    
+    --- Delete a sumamry
+    delete_summary(summary_id: string)      
+    
+    --- Get summaries index
+    get_summaries(): table<string, SummaryIndexData> 
+    
+    --- Load summary 
+    load_summary(summary_id: string): string?        
 <
 
 Example usage:
@@ -305,11 +414,7 @@ Example usage:
     
     -- Get all saved chats metadata
     local chats = history.get_chats()
-    
-    -- Load a specific chat
     local chat_data = history.load_chat("some_save_id")
-    
-    -- Delete a chat
     history.delete_chat("some_save_id")
     
     -- Duplicate a chat with custom title
@@ -317,6 +422,11 @@ Example usage:
     
     -- Duplicate a chat with auto-generated title (appends "(1)")
     local new_save_id = history.duplicate_chat("some_save_id")
+    -- Summary operations
+    history.generate_summary() -- generates for current chat
+    local summaries = history.get_summaries()
+    local summary_content = history.load_summary("some_save_id")
+    history.preview_summary() -- opens summary for editing
 <
 
 
@@ -437,9 +547,14 @@ architecture:
 
 
 
-📝 TODOS  *codecompanion-history-codecompanion-history-extension-📝-todos*
+🔮 FUTURE ROADMAP*codecompanion-history-codecompanion-history-extension-🔮-future-roadmap*
 
-- ☒ Add support for additional pickers like snacks, fzf etc
+
+UPCOMING FEATURES ~
+
+- ☐ Auto-summary generation options
+- ☐ Summary search and filtering
+- ☐ Integration with vector databases
 
 
 🔌 RELATED EXTENSIONS*codecompanion-history-codecompanion-history-extension-🔌-related-extensions*
@@ -450,9 +565,12 @@ architecture:
 
 🙏 ACKNOWLEDGEMENTS*codecompanion-history-codecompanion-history-extension-🙏-acknowledgements*
 
-Special thanks to Oli Morris <https://github.com/olimorris> for creating the
+Special thanks to: - Oli Morris <https://github.com/olimorris> for creating the
 amazing CodeCompanion.nvim <https://codecompanion.olimorris.dev> plugin - a
-highly configurable and powerful coding assistant for Neovim.
+highly configurable and powerful coding assistant for Neovim. - David
+<https://github.com/Davidyz> for the awesome VectorCode
+<https://github.com/Davidyz/VectorCode> CLI and adding the @memory tool
+integration.
 
 
 📄 LICENSE*codecompanion-history-codecompanion-history-extension-📄-license*
@@ -467,6 +585,7 @@ MIT
 3. *Tests*: https:/github.com/ravitemer/codecompanion-history.nvim/actions/workflows/ci.yml/badge.svg
 4. *License: MIT*: https:/img.shields.io/badge/License-MIT-yellow.svg
 5. *PRs Welcome*: https:/img.shields.io/badge/PRs-welcome-brightgreen.svg
+6. *@memory*: 
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
