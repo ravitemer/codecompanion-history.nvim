@@ -130,10 +130,13 @@ require("codecompanion").setup({
                     ---Maximum number of times to refresh the title (default: 3)
                     max_refreshes = 3,
                 },
-
+                ---On exiting and entering neovim, loads the last chat on opening chat
                 continue_last_chat = false,
+                ---When chat is cleared with `gx` delete the chat from history
                 delete_on_clearing_chat = false,
+                ---Directory path to save the chats
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
+                ---Enable detailed logging for history extension
                 enable_logging = false,
 
                 -- Summary system
@@ -367,11 +370,14 @@ local new_save_id = history.duplicate_chat("some_save_id", "My Custom Copy")
 
 -- Duplicate a chat with auto-generated title (appends "(1)")
 local new_save_id = history.duplicate_chat("some_save_id")
+
 -- Summary operations
 history.generate_summary() -- generates for current chat
+
 local summaries = history.get_summaries()
+
 local summary_content = history.load_summary("some_save_id")
-history.preview_summary() -- opens summary for editing
+
 
 ```
 
