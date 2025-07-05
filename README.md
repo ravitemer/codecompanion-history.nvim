@@ -180,6 +180,11 @@ require("codecompanion").setup({
 })
 ```
 
+
+> [!WARNING]
+> Title and summary generation defaults to current chat's adapter and model. Make sure to set cheaper models in `title_generation_opts` and `summary.generation_opts` to avoid using premium models.
+
+
 ## 🛠️ Usage
 
 #### 🎯 Commands
