@@ -524,6 +524,86 @@ end
 -- Configuration and System Prompt Tests
 T["Configuration"] = new_set()
 
+T["Configuration"]["applies format_summary function"] = function()
+    local result = child.lua([[              
+        -- Create generator with format_summary function
+        local SummaryGenerator = require("codecompanion._extensions.history.summary_generator")
+        local format_gen = SummaryGenerator.new({
+            summary = {
+                generation_opts = {
+                    format_summary = function(summary)
+                        -- Remove <think> tags and trim whitespace
+                        return summary:gsub("<think>.-</think>", ""):gsub("^%s*", ""):gsub("%s*$", "")
+                    end
+                }
+            }
+        })
+
+        -- Mock the adapter request to return summary with thinking tags
+        format_gen._make_adapter_request = function(self, chat, system_prompt, user_prompt, callback)
+            vim.schedule(function()
+                callback("<think>This is internal reasoning</think># Clean Summary\n\n## Overview\nThis is the actual summary content", nil)
+            end)
+        end
+
+        local completed = false
+        local generated_summary = nil
+        local error_msg = nil
+
+        -- Mock chat
+        local chat = {
+            opts = {
+                save_id = "test_format_summary",
+                title = "Test Chat"
+            },
+            messages = {
+                {
+                    role = "user",
+                    content = "First message",
+                    opts = { visible = true }
+                },
+                {
+                    role = "llm",
+                    content = "Response",
+                    opts = { visible = true }
+                },
+                {
+                    role = "user",
+                    content = "Second message",
+                    opts = { visible = true }
+                }
+            }
+        }
+
+        -- Generate summary
+        format_gen:generate(chat, function(summary, error)
+            generated_summary = summary
+            error_msg = error
+            completed = true
+        end)
+
+        -- Wait for completion
+        vim.wait(1000, function() return completed end)
+
+        return {
+            completed = completed,
+            has_summary = generated_summary ~= nil,
+            has_error = error_msg ~= nil,
+            summary_content = generated_summary and generated_summary.content or "",
+            has_thinking_tags = generated_summary and generated_summary.content:find("<think>") ~= nil,
+            has_clean_content = generated_summary and generated_summary.content:find("# Clean Summary") ~= nil,
+            starts_with_hash = generated_summary and generated_summary.content:match("^#") ~= nil
+        }
+    ]])
+
+    eq(true, result.completed)
+    eq(true, result.has_summary)
+    eq(false, result.has_error)
+    eq(false, result.has_thinking_tags) -- Should be removed by format function
+    eq(true, result.has_clean_content) -- Should contain the actual content
+    eq(true, result.starts_with_hash) -- Should start cleanly without whitespace
+end
+
 T["Configuration"]["uses custom system prompt as string"] = function()
     local result = child.lua([[              
         -- Create generator with custom system prompt
