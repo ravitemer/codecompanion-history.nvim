@@ -11,6 +11,7 @@
 ---@field model? string? The model of the adapter to use for generation
 ---@field refresh_every_n_prompts? number Number of user prompts after which to refresh the title (0 to disable)
 ---@field max_refreshes? number Maximum number of times to refresh the title (default: 3)
+---@field format_title? fun(original_title: string):string a function that applies a custom transformation to the title.
 
 ---@class HistoryOpts
 ---@field default_buf_title? string A name for the chat buffer that tells that this is an auto saving chat
@@ -28,7 +29,6 @@
 ---@field expiration_days? number Number of days after which chats are automatically deleted (0 to disable)
 ---@field picker_keymaps? {rename?: table, delete?: table, duplicate?: table}
 ---@field chat_filter? fun(chat_data: ChatIndexData): boolean Filter function for browsing chats
----@field title_decorator? fun(original_title: string):string a function that applies a custom transformation to the title.
 
 ---@class Chat
 ---@field opts {title:string, title_refresh_count?: number, save_id: string}

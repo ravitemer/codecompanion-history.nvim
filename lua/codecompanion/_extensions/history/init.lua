@@ -55,6 +55,7 @@ local default_opts = {
         refresh_every_n_prompts = 0,
         ---Maximum number of times to refresh the title (default: 3)
         max_refreshes = 3,
+        format_title = nil,
     },
     ---On exiting and entering neovim, loads the last chat on opening chat
     continue_last_chat = false,
@@ -66,7 +67,6 @@ local default_opts = {
     enable_logging = false,
     ---Filter function for browsing chats (defaults to show all chats)
     chat_filter = nil,
-    title_decorator = nil,
 }
 
 ---@type History|nil
@@ -190,8 +190,8 @@ function History:_setup_autocommands()
             local should_generate, is_refresh = self.title_generator:should_generate(chat)
             if should_generate then
                 self.title_generator:generate(chat, function(generated_title)
-                    if type(self.opts.title_decorator) == "function" then
-                        generated_title = self.opts.title_decorator(generated_title)
+                    if type(self.opts.title_generation_opts.format_title) == "function" then
+                        generated_title = self.opts.title_generation_opts.format_title(generated_title)
                     end
                     if generated_title and generated_title ~= "" then
                         -- Always update buffer title for feedback

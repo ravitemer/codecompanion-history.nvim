@@ -113,6 +113,11 @@ require("codecompanion").setup({
                     refresh_every_n_prompts = 0, -- e.g., 3 to refresh after every 3rd user prompt
                     ---Maximum number of times to refresh the title (default: 3)
                     max_refreshes = 3,
+                    format_title = function(original_title)
+                        -- this can be a custom function that applies some custom
+                        -- formatting to the title.
+                        return original_title
+                    end
                 },
                 ---On exiting and entering neovim, loads the last chat on opening chat
                 continue_last_chat = false,
@@ -124,11 +129,6 @@ require("codecompanion").setup({
                 enable_logging = false,
                 ---Optional filter function to control which chats are shown when browsing
                 chat_filter = nil, -- function(chat_data) return boolean end
-                title_decorator = function(original_title)
-                    -- this can be a custom function that applies some custom
-                    -- actions to the title.
-                    return original_title
-                end
             }
         }
     }
