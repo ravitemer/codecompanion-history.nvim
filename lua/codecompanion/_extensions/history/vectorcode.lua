@@ -58,7 +58,9 @@ M.vectorise = check_vectorcode_wrap(function(path)
     end
     vim.system({ M.opts.vectorcode_exe, "vectorise", "--project_root", summary_dir, "--pipe", path }, {}, function(out)
         if M.opts.notify then
-            vim.notify("Indexing finished!", vim.log.levels.INFO, { title = "CodeCompanion-History" })
+            vim.schedule(function()
+                vim.notify("Indexing finished!", vim.log.levels.INFO, { title = "CodeCompanion-History" })
+            end)
         end
         local ok, _ = pcall(vim.json.decode, out.stdout)
         if not ok and out.stderr then
