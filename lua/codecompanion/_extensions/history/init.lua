@@ -193,26 +193,24 @@ function History:_setup_autocommands()
         end),
     })
     vim.api.nvim_create_autocmd("User", {
-        pattern = "CodeCompanion*Finished",
+        pattern = { "CodeCompanionRequestFinished", "CodeCompanionAgentFinished" },
         group = group,
         callback = vim.schedule_wrap(function(opts)
             if not self.opts.auto_save then
                 return
             end
-            if opts.match == "CodeCompanionRequestFinished" or opts.match == "CodeCompanionAgentFinished" then
-                log:trace("Chat %s event received for %s", opts.match, opts.data.strategy)
-                if opts.match == "CodeCompanionRequestFinished" and opts.data.strategy ~= "chat" then
-                    return log:trace("Skipping RequestFinished event received for non-chat strategy")
-                end
-                local chat_module = require("codecompanion.strategies.chat")
-                local bufnr = opts.data.bufnr
-                if not bufnr then
-                    return log:trace("No bufnr found in event data")
-                end
-                local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
-                if chat then
-                    self.storage:save_chat(chat)
-                end
+            log:trace("Chat %s event received for %s", opts.match, opts.data.strategy)
+            if opts.match == "CodeCompanionRequestFinished" and opts.data.strategy ~= "chat" then
+                return log:trace("Skipping RequestFinished event received for non-chat strategy")
+            end
+            local chat_module = require("codecompanion.strategies.chat")
+            local bufnr = opts.data.bufnr
+            if not bufnr then
+                return log:trace("No bufnr found in event data")
+            end
+            local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
+            if chat then
+                self.storage:save_chat(chat)
             end
         end),
     })
