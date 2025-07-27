@@ -103,9 +103,10 @@ function SummaryGenerator:_format_message_for_summary(msg)
             return "User: " .. (msg.content or "")
         end
 
-        -- Include references if enabled
-        if self.generation_opts.include_references and msg.opts and msg.opts.reference then
-            return "Context: " .. (msg.opts.reference or "") .. "\n" .. (msg.content or "")
+        -- Include context items if enabled
+        if self.generation_opts.include_references and msg.opts and (msg.opts.context_id or msg.opts.reference) then
+            local context_id = msg.opts.context_id or msg.opts.reference
+            return "Context: " .. (context_id or "") .. "\n" .. (msg.content or "")
         end
 
         return nil

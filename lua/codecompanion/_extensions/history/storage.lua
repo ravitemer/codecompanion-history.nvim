@@ -280,7 +280,7 @@ function Storage:save_chat(chat)
         settings = chat.settings or {},
         adapter = chat.adapter and chat.adapter.name or "unknown",
         updated_at = os.time(),
-        refs = chat.refs or {},
+        context_items = chat.context_items or {},
         schemas = (chat.tools and chat.tools.schemas) or {},
         in_use = (chat.tools and chat.tools.in_use) or {},
         cycle = chat.cycle or 1,

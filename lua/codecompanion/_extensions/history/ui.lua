@@ -419,11 +419,12 @@ Summary:
             role = config.constants.USER_ROLE,
             content = content,
         }, {
-            reference = ref_id,
+            context_id = ref_id,
             visible = false,
         })
-        current_chat.references:add({
+        current_chat.context:add({
             id = ref_id,
+            source = "summary",
         })
         vim.notify("Summary added to chat")
     else
@@ -582,7 +583,7 @@ function UI:create_chat(chat_data)
         local chat = require("codecompanion.strategies.chat").new({
             save_id = save_id,
             messages = messages,
-            context = context,
+            buffer_context = context,
             settings = settings,
             adapter = adapter --[[@as CodeCompanion.Adapter]],
             title = title,
@@ -590,8 +591,10 @@ function UI:create_chat(chat_data)
             -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
             -- ignore_system_prompt = true,
         }) --[[@as CodeCompanion.History.Chat]]
-        for _, ref in ipairs(chat_data.refs or {}) do
-            chat.references:add(ref)
+        -- Handle both old (refs) and new (context_items) storage formats
+        local stored_context_items = chat_data.context_items or chat_data.refs or {}
+        for _, item in ipairs(stored_context_items) do
+            chat.context:add(item)
         end
         chat.tools.schemas = chat_data.schemas or {}
         chat.tools.in_use = chat_data.in_use or {}
@@ -671,31 +674,31 @@ function UI:_get_preview_lines(chat_data)
     local assistant_role = config.constants.LLM_ROLE
     local last_role
     local last_set_role
-    local function render_references(refs)
-        if vim.tbl_isempty(refs) then
+    local function render_context_items(context_items)
+        if vim.tbl_isempty(context_items) then
             return
         end
         table.insert(lines, "> Context:")
         local icons_path = config.display.chat.icons
         local icons = {
-            pinned = icons_path.pinned_buffer,
-            watched = icons_path.watched_buffer,
+            pinned = icons_path.pinned_buffer or icons_path.buffer_pin,
+            watched = icons_path.watched_buffer or icons_path.buffer_watch,
         }
-        for _, ref in pairs(refs) do
-            if not ref or (ref.opts and ref.opts.visible == false) then
+        for _, item in pairs(context_items) do
+            if not item or (item.opts and item.opts.visible == false) then
                 goto continue
             end
-            if ref.opts and ref.opts.pinned then
-                table.insert(lines, string.format("> - %s%s", icons.pinned, ref.id))
-            elseif ref.opts and ref.opts.watched then
-                table.insert(lines, string.format("> - %s%s", icons.watched, ref.id))
+            if item.opts and item.opts.pinned then
+                table.insert(lines, string.format("> - %s%s", icons.pinned, item.id))
+            elseif item.opts and item.opts.watched then
+                table.insert(lines, string.format("> - %s%s", icons.watched, item.id))
             else
-                table.insert(lines, string.format("> - %s", ref.id))
+                table.insert(lines, string.format("> - %s", item.id))
             end
             ::continue::
         end
         if #lines == 1 then
-            -- no ref added
+            -- no context items added
             return
         end
         table.insert(lines, "")
@@ -757,7 +760,9 @@ function UI:_get_preview_lines(chat_data)
         table.insert(lines, "---")
         spacer()
     end
-    render_references(chat_data.refs)
+    -- Handle both old (refs) and new (context_items) storage formats for preview
+    local stored_context_items = chat_data.context_items or chat_data.refs or {}
+    render_context_items(stored_context_items)
     if vim.tbl_isempty(chat_data.messages) then
         set_header(lines, user_role)
         spacer()
