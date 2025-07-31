@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodeCompanion History Workspace Configuration", 
+  "name": "codecompanion-history-workspace",
+  "version": "1.0.0",
+  "system_prompt": "You are working with the codecompanion-history.nvim plugin, a sophisticated Neovim extension that provides persistent chat history, intelligent title generation, summary creation, and memory integration for CodeCompanion.nvim. This workspace organizes the modular architecture into functional groups aligned with the plugin's technical design.",
+  "groups": [
+    {
+      "name": "Core Extension Architecture",
+      "system_prompt": "This group contains the main entry point, initialization logic, and core orchestration components. Focus on understanding the History class architecture, component initialization patterns, and event-driven integration with CodeCompanion.nvim.",
+      "data": [
+        "core-init-main",
+        "core-types", 
+        "core-setup-validation",
+        "core-logging"
+      ]
+    },
+    {
+      "name": "Storage & Data Management",
+      "system_prompt": "This group covers the persistence layer responsible for chat data storage, file operations, indexing, and data integrity. Focus on understanding the storage schema, atomic operations, expiration system, and JSON-based persistence architecture.",
+      "data": [
+        "storage-main",
+        "storage-utilities",
+        "storage-indexing-tests",
+        "storage-data-schema"
+      ]
+    },
+    {
+      "name": "Title Management System", 
+      "system_prompt": "This group contains the intelligent title generation system for chat sessions. Focus on understanding AI-powered title generation, collision handling, refresh logic, and asynchronous title updates.",
+      "data": [
+        "title-generation-main",
+        "title-generation-logic"
+      ]
+    },
+    {
+      "name": "User Interface & Picker System",
+      "system_prompt": "This group covers all UI components and picker interfaces for browsing chat history. Focus on understanding the modular picker architecture, interface selection logic, preview generation, and user interaction patterns.",
+      "data": [
+        "ui-main-interface",
+        "ui-picker-selector", 
+        "ui-telescope-picker",
+        "ui-fzf-lua-picker",
+        "ui-snacks-picker", 
+        "ui-default-picker"
+      ]
+    },
+    {
+      "name": "Summary & Memory Integration",
+      "system_prompt": "This group contains the summary generation system and VectorCode memory integration. Focus on understanding chunked summarization, memory creation, vector search functionality, and @memory tool integration.",
+      "data": [
+        "summary-generation-main",
+        "vectorcode-integration",
+        "memory-tool-system"
+      ]
+    },
+    {
+      "name": "Testing Infrastructure",
+      "system_prompt": "This group contains the comprehensive test suite and testing utilities. Focus on understanding the testing framework, mock setups, validation patterns, and test coverage for all major components.",
+      "data": [
+        "test-storage-suite",
+        "test-setup-validation",
+        "test-helpers-common", 
+        "test-helpers-cc",
+        "test-config-examples"
+      ]
+    },
+    {
+      "name": "Development & Build System",
+      "system_prompt": "This group contains build automation, development configuration, and documentation generation tools. Focus on understanding the Makefile targets, code formatting, linting, and CI/CD integration.",
+      "data": [
+        "build-makefile",
+        "build-stylua-config",
+        "build-linting-config", 
+        "build-docs-source",
+        "build-minimal-init"
+      ]
+    },
+    {
+      "name": "Documentation & Configuration",
+      "system_prompt": "This group contains user-facing documentation and configuration examples. Focus on understanding usage patterns, configuration options, installation guides, and contribution workflows.",
+      "data": [
+        "docs-readme-main",
+        "docs-contributing-guide",
+        "docs-license"
+      ]
+    }
+  ],
+  "data": {
+    "core-init-main": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/init.lua",
+      "description": "Main extension entry point implementing the History class - orchestrates storage, UI, title generator integration with event-driven architecture"
+    },
+    "core-types": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/types.lua",
+      "description": "Comprehensive type definitions and data structures including ChatData, SummaryData, and interface contracts"
+    },
+    "core-setup-validation": {
+      "type": "file",
+      "path": "tests/test_setup.lua",
+      "description": "Extension setup validation and initialization testing with command and keymap registration verification"
+    },
+    "core-logging": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/log.lua", 
+      "description": "Configurable logging system with multiple levels, output management, and debugging infrastructure"
+    },
+    "storage-main": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/storage.lua",
+      "description": "Core storage system implementing chat persistence with JSON indexing, atomic operations, and expiration-based cleanup"
+    },
+    "storage-utilities": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/utils.lua",
+      "description": "File I/O utilities for JSON/Lua data handling, project root detection, buffer management, and data validation"
+    },
+    "storage-indexing-tests": {
+      "type": "file", 
+      "path": "tests/test_storage.lua",
+      "description": "Comprehensive storage tests covering save/load operations, indexing, error handling, and concurrent access scenarios"
+    },
+    "storage-data-schema": {
+      "type": "file",
+      "path": "tests/test_summary.lua",
+      "description": "Summary data schema validation and storage format testing for conversation summarization system"
+    },
+    "title-generation-main": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/title_generator.lua",
+      "description": "AI-powered title generation system with intelligent content processing and collision handling"
+    },
+    "title-generation-logic": {
+      "type": "file",
+      "path": "tests/test_filtering.lua",
+      "description": "Title generation logic testing including project root detection and content filtering scenarios"
+    },
+    "ui-main-interface": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/ui.lua",
+      "description": "Main UI interface managing chat browsing, preview generation, title updates, and picker integration"
+    },
+    "ui-picker-selector": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/pickers/init.lua",
+      "description": "Picker selection system with intelligent fallback logic: telescope → fzf-lua → snacks → default"
+    },
+    "ui-telescope-picker": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/pickers/telescope.lua",
+      "description": "Telescope.nvim picker integration with fuzzy finding and preview capabilities"
+    },
+    "ui-fzf-lua-picker": {
+      "type": "file", 
+      "path": "lua/codecompanion/_extensions/history/pickers/fzf-lua.lua",
+      "description": "FZF-Lua picker implementation providing alternative fuzzy finder interface"
+    },
+    "ui-snacks-picker": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/pickers/snacks.lua",
+      "description": "Snacks.nvim picker integration with condition-based availability checking"
+    },
+    "ui-default-picker": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/pickers/default.lua",
+      "description": "Fallback built-in picker implementation when external pickers are unavailable"
+    },
+    "summary-generation-main": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/summary_generator.lua",
+      "description": "Intelligent conversation summarization system with chunked processing and configurable generation parameters"
+    },
+    "vectorcode-integration": {
+      "type": "file",
+      "path": "lua/codecompanion/_extensions/history/vectorcode.lua", 
+      "description": "VectorCode CLI integration implementing @memory tool for vector search and memory management"
+    },
+    "memory-tool-system": {
+      "type": "file",
+      "path": "tests/test_filtering.lua",
+      "description": "Memory system testing including project detection and vector search functionality validation"
+    },
+    "test-storage-suite": {
+      "type": "file",
+      "path": "tests/test_storage.lua",
+      "description": "Complete test suite for storage functionality covering all data persistence operations and edge cases"
+    },
+    "test-setup-validation": {
+      "type": "file",
+      "path": "tests/test_setup.lua",
+      "description": "Extension setup and initialization testing with comprehensive validation checks"
+    },
+    "test-helpers-common": {
+      "type": "file",
+      "path": "tests/helpers.lua",
+      "description": "Common test utilities including environment setup and test isolation helpers"
+    },
+    "test-helpers-cc": {
+      "type": "file",
+      "path": "tests/cc_helpers.lua",
+      "description": "CodeCompanion-specific test helpers for mocking adapters, responses, and chat buffer setup"
+    },
+    "test-config-examples": {
+      "type": "file",
+      "path": "tests/cc_config.lua",
+      "description": "Test configuration examples with adapter setups and mock data scenarios for development"
+    },
+    "build-makefile": {
+      "type": "file",
+      "path": "Makefile",
+      "description": "Build automation with targets for formatting, testing, documentation generation, and dependency management"
+    },
+    "build-stylua-config": {
+      "type": "file",
+      "path": "stylua.toml",
+      "description": "Lua code formatting configuration with 120-character columns, 4-space indentation, and style rules"
+    },
+    "build-linting-config": {
+      "type": "file",
+      "path": ".luarc.json",
+      "description": "Lua language server configuration for linting, diagnostics, and type checking"
+    },
+    "build-docs-source": {
+      "type": "file",
+      "path": "scripts/vimdoc.md",
+      "description": "Documentation source for help file generation using panvimdoc processing"
+    },
+    "build-minimal-init": {
+      "type": "file", 
+      "path": "scripts/minimal_init.lua",
+      "description": "Minimal Neovim configuration for testing and development environments with isolated setups"
+    },
+    "docs-readme-main": {
+      "type": "file",
+      "path": "README.md",
+      "description": "Comprehensive project documentation with feature overview, installation instructions, configuration examples, and usage patterns"
+    },
+    "docs-contributing-guide": {
+      "type": "file",
+      "path": "CONTRIBUTING.md",
+      "description": "Development guidelines, contribution workflow, code standards, and testing requirements"
+    },
+    "docs-license": {
+      "type": "file",
+      "path": "LICENSE",
+      "description": "MIT license terms and conditions for open-source distribution and usage"
+    }
+  }
+}
