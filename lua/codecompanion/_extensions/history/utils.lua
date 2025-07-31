@@ -131,6 +131,39 @@ function M.fire(event, opts)
     vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionHistory" .. event, data = opts })
 end
 
+---Write a Lua table to a .lua file using vim.inspect
+---@param file_path string Path to the file
+---@param data table Data to write
+---@return {ok: boolean, error: string|nil} Result
+function M.write_lua(file_path, data)
+    if type(data) ~= "table" then
+        return { ok = false, error = "Cannot serialize non-table data" }
+    end
+
+    -- Use vim.inspect for much simpler serialization
+    local lua_code = "return " .. vim.inspect(data)
+    return M.write_file(file_path, lua_code)
+end
+
+---Read and load a Lua table from a .lua file
+---@param file_path string Path to the file
+---@return {ok: boolean, data: table|nil, error: string|nil} Result
+function M.read_lua(file_path)
+    local Path = require("plenary.path")
+    local path = Path:new(file_path)
+
+    if not path:exists() then
+        return { ok = false, data = nil, error = "File does not exist: " .. file_path }
+    end
+
+    local success, result = pcall(dofile, file_path)
+    if not success then
+        return { ok = false, data = nil, error = "Failed to load Lua file: " .. tostring(result) }
+    end
+
+    return { ok = true, data = result, error = nil }
+end
+
 -- File I/O utility functions
 ---Read and decode a JSON file
 ---@param file_path string Path to the file
