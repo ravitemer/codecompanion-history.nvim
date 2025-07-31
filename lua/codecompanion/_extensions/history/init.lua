@@ -193,7 +193,7 @@ function History:_setup_autocommands()
         end),
     })
     vim.api.nvim_create_autocmd("User", {
-        pattern = { "CodeCompanionRequestFinished", "CodeCompanionAgentFinished" },
+        pattern = { "CodeCompanionChatDone" },
         group = group,
         callback = vim.schedule_wrap(function(opts)
             if not self.opts.auto_save then
