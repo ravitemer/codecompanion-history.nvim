@@ -120,6 +120,11 @@ return {
                 blank_prompt = "",
             },
         },
+
+        inline = {
+            adapter = "test_adapter",
+            variables = {},
+        },
     },
     prompt_library = {
         ["Demo"] = {
