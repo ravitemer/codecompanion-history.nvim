@@ -244,9 +244,10 @@ local function validate_chat_object(chat)
             if msg.role ~= nil and type(msg.role) ~= "string" then
                 return false, string.format("message %d role must be a string", i)
             end
-            if msg.content ~= nil and type(msg.content) ~= "string" then
-                return false, string.format("message %d content must be a string", i)
-            end
+            --INFO: For anthropic adapter, tool call results may have non-string content
+            -- if msg.content ~= nil and type(msg.content) ~= "string" then
+            --     return false, string.format("message %d content must be a string", i)
+            -- end
         end
     end
     return true

@@ -727,7 +727,16 @@ function UI:_get_preview_lines(chat_data)
                 end
 
                 local trimempty = not (msg.role == "user" and msg.content == "")
-                for _, text in ipairs(vim.split(msg.content or "", "\n", { plain = true, trimempty = trimempty })) do
+                local display_content = msg.content or ""
+                --INFO: For anthropic adapter, the tool output is in content.content
+                if type(display_content) == "table" then
+                    if type(msg.content.content) == "string" then
+                        display_content = msg.content.content
+                    else
+                        display_content = "[Message Cannot Be Displayed]"
+                    end
+                end
+                for _, text in ipairs(vim.split(display_content or "", "\n", { plain = true, trimempty = trimempty })) do
                     table.insert(lines, text)
                 end
 
