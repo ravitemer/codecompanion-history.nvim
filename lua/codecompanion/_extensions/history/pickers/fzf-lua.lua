@@ -99,7 +99,7 @@ function FzfluaPicker:browse()
                         return
                     end
                     local buf_id = previewer:get_tmp_buffer()
-                    vim.bo[buf_id].filetype = "codecompanion"
+                    vim.bo[buf_id].filetype = "markdown"
                     vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
                     _:set_preview_buf(buf_id)
                 end

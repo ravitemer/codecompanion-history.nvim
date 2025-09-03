@@ -25,7 +25,7 @@ function SnacksPicker:browse()
             end
 
             local buf_id = ctx.preview:scratch()
-            vim.bo[buf_id].filetype = "codecompanion"
+            vim.bo[buf_id].filetype = "markdown"
             vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
         end,
         confirm = function(picker, _)
