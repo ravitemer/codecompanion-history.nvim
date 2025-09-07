@@ -116,9 +116,9 @@ end
 ---@param chat_data CodeCompanion.History.ChatData
 ---@return {ok: boolean, error: string|nil}
 function Storage:_save_chat_to_file(chat_data)
-    local chat_path = self.chats_dir .. "/" .. chat_data.save_id .. ".json"
+    local chat_path = self.chats_dir .. "/" .. chat_data.save_id .. ".lua"
     log:trace("Saving chat to file: %s", chat_path)
-    return utils.write_json(chat_path, chat_data)
+    return utils.write_lua(chat_path, chat_data)
 end
 
 ---@param chat_data CodeCompanion.History.ChatData
@@ -198,9 +198,9 @@ end
 ---@param id string
 ---@return CodeCompanion.History.ChatData|nil
 function Storage:load_chat(id)
-    local chat_path = self.chats_dir .. "/" .. id .. ".json"
+    local chat_path = self.chats_dir .. "/" .. id .. ".lua"
     log:trace("Loading chat from: %s", chat_path)
-    local result = utils.read_json(chat_path)
+    local result = utils.read_lua(chat_path)
 
     if not result.ok then
         if not result.error:match("does not exist") then
@@ -272,15 +272,16 @@ function Storage:save_chat(chat)
 
     log:trace("Saving chat: %s", chat.opts.save_id)
     local cwd = chat.opts.cwd or vim.fn.getcwd()
+    local timestamp = os.time()
     -- Create chat data object requiring valid types
     ---@type CodeCompanion.History.ChatData
     local chat_data = {
         save_id = chat.opts.save_id,
         title = chat.opts.title,
-        messages = chat.messages or {},
-        settings = chat.settings or {},
+        messages = vim.deepcopy(chat.messages or {}),
+        settings = vim.deepcopy(chat.settings or {}),
         adapter = chat.adapter and chat.adapter.name or "unknown",
-        updated_at = os.time(),
+        updated_at = timestamp,
         context_items = chat.context_items or {},
         schemas = (chat.tool_registry and chat.tool_registry.schemas) or {},
         in_use = (chat.tool_registry and chat.tool_registry.in_use) or {},
@@ -290,8 +291,16 @@ function Storage:save_chat(chat)
         project_root = utils.find_project_root(cwd),
     }
 
+    -- Set tool messages to be hidden when restored to prevent tool output in chat buffer
+    for _, msg in ipairs(chat_data.messages) do
+        if msg.role == "tool" or msg.tool_call_id then
+            msg.opts = msg.opts or {}
+            msg.opts.visible = false
+        end
+    end
+
     -- Save chat to file
-    local save_result = self:_save_chat_to_file(utils.remove_functions(chat_data))
+    local save_result = self:_save_chat_to_file(chat_data)
     if not save_result.ok then
         log:error("Failed to save chat: %s", save_result.error)
         return
@@ -315,7 +324,7 @@ function Storage:delete_chat(id)
 
     log:debug("Deleting chat: %s", id)
     -- Delete the chat file
-    local chat_path = self.chats_dir .. "/" .. id .. ".json"
+    local chat_path = self.chats_dir .. "/" .. id .. ".lua"
     local delete_result = utils.delete_file(chat_path)
     if not delete_result.ok then
         log:error("Failed to delete chat file: %s", delete_result.error)
@@ -395,12 +404,12 @@ function Storage:rename_chat(save_id, new_title)
     end
 
     -- Update chat data
-    local chat_path = self.chats_dir .. "/" .. save_id .. ".json"
-    local chat_result = utils.read_json(chat_path)
+    local chat_path = self.chats_dir .. "/" .. save_id .. ".lua"
+    local chat_result = utils.read_lua(chat_path)
     if chat_result.ok then
         chat_result.data.title = new_title
         chat_result.data.updated_at = os.time()
-        result = utils.write_json(chat_path, chat_result.data)
+        result = utils.write_lua(chat_path, chat_result.data)
         if not result.ok then
             log:error("Failed to update chat file with new title: %s", result.error)
             return false
