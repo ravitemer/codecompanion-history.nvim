@@ -615,39 +615,41 @@ function UI:create_chat(chat_data)
             )
             return self:_change_adapter(_create_chat)
         else
-            local saved_model = settings.model
-            if saved_model then
-                local available_models = resolved_adapter.schema.model.choices
-                --INFO:Skipping if models is a function
-                -- if type(available_models) == "function" then
-                --     vim.notify("Please wait while we fetch the avaiable models in " .. adapter)
-                --     available_models = available_models(resolved_adapter)
-                -- end
-                if type(available_models) == "table" then
-                    available_models = vim.iter(available_models)
-                        :map(function(model, value)
-                            if type(model) == "string" then
-                                return model
-                            else
-                                return value -- This is for the table entry case
-                            end
-                        end)
-                        :totable()
-                    local has_model = vim.tbl_contains(available_models, saved_model)
-                    if not has_model then
-                        vim.notify(
-                            string.format(
-                                "Model '%s' is not available in '%s' adapter, using default model.",
-                                saved_model,
-                                adapter
+            if resolved_adapter.type ~= "acp" then
+                local saved_model = settings.model
+                if saved_model then
+                    local available_models = resolved_adapter.schema.model.choices
+                    --INFO:Skipping if models is a function
+                    -- if type(available_models) == "function" then
+                    --     vim.notify("Please wait while we fetch the avaiable models in " .. adapter)
+                    --     available_models = available_models(resolved_adapter)
+                    -- end
+                    if type(available_models) == "table" then
+                        available_models = vim.iter(available_models)
+                            :map(function(model, value)
+                                if type(model) == "string" then
+                                    return model
+                                else
+                                    return value -- This is for the table entry case
+                                end
+                            end)
+                            :totable()
+                        local has_model = vim.tbl_contains(available_models, saved_model)
+                        if not has_model then
+                            vim.notify(
+                                string.format(
+                                    "Model '%s' is not available in '%s' adapter, using default model.",
+                                    saved_model,
+                                    adapter
+                                )
                             )
-                        )
-                        return _create_chat(adapter, nil)
-                        --INFO: this results in rare errors where the model opts differ from one model to another model.
-                        -- return self:_change_model(available_models, function(model)
-                        --     settings.model = model
-                        --     create_chat(adapter, nil)
-                        -- end)
+                            return _create_chat(adapter, nil)
+                            --INFO: this results in rare errors where the model opts differ from one model to another model.
+                            -- return self:_change_model(available_models, function(model)
+                            --     settings.model = model
+                            --     create_chat(adapter, nil)
+                            -- end)
+                        end
                     end
                 end
             end
