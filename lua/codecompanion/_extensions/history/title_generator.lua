@@ -220,14 +220,21 @@ end
 
 ---@param chat CodeCompanion.History.Chat
 ---@param prompt string
----@param callback fun(title: string|nil)
+---@param callback fun(title: string|nil, error_msg: string|nil)
 function TitleGenerator:_make_adapter_request(chat, prompt, callback)
     log:trace("Making adapter request for title generation")
     local opts = self.opts.title_generation_opts or {}
-    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.Adapter]]
+    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.HTTPAdapter | CodeCompanion.ACPAdapter]]
     local settings = vim.deepcopy(chat.settings)
     if opts.adapter then
         adapter = require("codecompanion.adapters").resolve(opts.adapter)
+    end
+    -- Early return for ACP adapters like gemini-cli or claude-code
+    if adapter.type == "acp" then
+        return callback(
+            nil,
+            "ACP adapters are not supported for title generation. Configure `title_generation_opts.adapter` to use an HTTP-based adapter."
+        )
     end
     if opts.model then
         settings = schema.get_default(adapter, { model = opts.model })

@@ -303,13 +303,21 @@ function SummaryGenerator:_make_adapter_request(chat, system_prompt, user_prompt
     log:trace("Making adapter request for summary generation")
 
     local opts = self.generation_opts
-    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.Adapter]]
+    local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.HTTPAdapter | CodeCompanion.ACPAdapter]]
     local settings = vim.deepcopy(chat.settings)
 
     -- Use custom adapter/model if specified
     if opts.adapter then
         adapter = require("codecompanion.adapters").resolve(opts.adapter)
     end
+
+    if adapter.type == "acp" then
+        return callback(
+            nil,
+            "ACP adapters are not supported for summary generation. Configure `summary.generation_opts.adapter` to use an HTTP-based adapter."
+        )
+    end
+
     if opts.model then
         settings = schema.get_default(adapter, { model = opts.model })
     end

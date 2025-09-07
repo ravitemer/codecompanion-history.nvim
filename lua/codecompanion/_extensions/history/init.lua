@@ -232,7 +232,12 @@ function History:_setup_autocommands()
             -- Handle title generation/refresh
             local should_generate, is_refresh = self.title_generator:should_generate(chat)
             if should_generate then
-                self.title_generator:generate(chat, function(generated_title)
+                self.title_generator:generate(chat, function(generated_title, error)
+                    if error then
+                        self.ui:update_chat_title(chat) -- revert to base title
+                        vim.notify("Failed to generate title: " .. error, vim.log.levels.WARN)
+                        return
+                    end
                     if type(self.opts.title_generation_opts.format_title) == "function" then
                         generated_title = self.opts.title_generation_opts.format_title(generated_title)
                     end
