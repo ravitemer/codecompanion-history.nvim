@@ -593,8 +593,15 @@ function UI:create_chat(chat_data)
         }) --[[@as CodeCompanion.History.Chat]]
         -- Handle both old (refs) and new (context_items) storage formats
         local stored_context_items = chat_data.context_items or chat_data.refs or {}
+        local chat_context_items = chat.context_items or {}
         for _, item in ipairs(stored_context_items) do
-            chat.context:add(item)
+            -- Avoid adding duplicates related to #48
+            local is_duplicate = vim.tbl_contains(chat_context_items, function(chat_item)
+                return chat_item.id == item.id
+            end, { predicate = true })
+            if not is_duplicate then
+                chat.context:add(item)
+            end
         end
         chat.tool_registry.schemas = chat_data.schemas or {}
         chat.tool_registry.in_use = chat_data.in_use or {}
