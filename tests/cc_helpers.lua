@@ -32,9 +32,9 @@ end
 ---@param status? string The status to set (default: "success")
 ---@return function The original submit function for restoration
 Helpers.mock_submit = function(response, tools, status)
-    local original_submit = require("codecompanion.strategies.chat").submit
+    local original_submit = require("codecompanion.interactions.chat").submit
 
-    require("codecompanion.strategies.chat").submit = function(self)
+    require("codecompanion.interactions.chat").submit = function(self)
         self.status = status or "success"
         self:done({ response or "Mocked response" }, tools)
         return true
@@ -47,7 +47,7 @@ end
 ---@param original function The original submit function to restore
 ---@return nil
 Helpers.restore_submit = function(original)
-    require("codecompanion.strategies.chat").submit = original
+    require("codecompanion.interactions.chat").submit = original
 end
 
 ---Setup and mock a chat buffer
@@ -61,7 +61,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
     if adapter then
         config_module.adapters[adapter.name] = adapter.config
     end
-    local chat = require("codecompanion.strategies.chat").new({
+    local chat = require("codecompanion.interactions.chat").new({
         context = { bufnr = 1, filetype = "lua" },
         adapter = adapter and adapter.name or "test_adapter",
     })

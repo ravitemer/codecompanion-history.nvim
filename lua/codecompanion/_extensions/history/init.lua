@@ -156,7 +156,7 @@ function History:_setup_autocommands()
             --   id = 7463137
             -- },
             log:trace("Chat created event received")
-            local chat_module = require("codecompanion.strategies.chat")
+            local chat_module = require("codecompanion.interactions.chat")
             local bufnr = opts.data.bufnr
             local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
 
@@ -200,11 +200,11 @@ function History:_setup_autocommands()
                 return
             end
             if opts.match == "CodeCompanionRequestFinished" or opts.match == "CodeCompanionToolsFinished" then
-                log:trace("Chat %s event received for %s", opts.match, opts.data.strategy)
-                if opts.match == "CodeCompanionRequestFinished" and opts.data.strategy ~= "chat" then
-                    return log:trace("Skipping RequestFinished event received for non-chat strategy")
+                log:trace("Chat %s event received for %s", opts.match, opts.data.interaction)
+                if opts.match == "CodeCompanionRequestFinished" and opts.data.interaction ~= "chat" then
+                    return log:trace("Skipping RequestFinished event received for non-chat interaction")
                 end
-                local chat_module = require("codecompanion.strategies.chat")
+                local chat_module = require("codecompanion.interactions.chat")
                 local bufnr = opts.data.bufnr
                 if not bufnr then
                     return log:trace("No bufnr found in event data")
@@ -222,7 +222,7 @@ function History:_setup_autocommands()
         group = group,
         callback = vim.schedule_wrap(function(opts)
             log:trace("Chat submitted event received")
-            local chat_module = require("codecompanion.strategies.chat")
+            local chat_module = require("codecompanion.interactions.chat")
             local bufnr = opts.data.bufnr
             local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
             if not chat then
@@ -275,7 +275,7 @@ function History:_setup_autocommands()
         callback = vim.schedule_wrap(function(opts)
             log:trace("Chat cleared event received")
 
-            local chat_module = require("codecompanion.strategies.chat")
+            local chat_module = require("codecompanion.interactions.chat")
             local bufnr = opts.data.bufnr
             local chat = chat_module.buf_get_chat(bufnr) --[[@as CodeCompanion.History.Chat]]
             if not chat then
@@ -387,7 +387,7 @@ function History:_setup_keymaps()
     local cc_config = require("codecompanion.config")
     -- Add all keymaps to codecompanion
     for name, keymap in pairs(keymaps) do
-        cc_config.strategies.chat.keymaps[name] = keymap
+        cc_config.interactions.chat.keymaps[name] = keymap
     end
 end
 
@@ -420,7 +420,7 @@ return {
                 vectorcode.vectorise()
             end
             local cc_config = require("codecompanion.config").config
-            cc_config.strategies.chat.tools["memory"] = {
+            cc_config.interactions.chat.tools["memory"] = {
                 description = "Search from previous conversations saved in codecompanion-history.",
                 callback = vectorcode.make_memory_tool(opts.memory.tool_opts),
             }

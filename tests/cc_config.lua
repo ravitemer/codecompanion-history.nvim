@@ -67,7 +67,7 @@ return {
             },
         },
     },
-    strategies = {
+    interactions = {
         chat = {
             adapter = "test_adapter",
             roles = {
@@ -77,15 +77,15 @@ return {
             keymaps = {},
             tools = {
                 ["cmd_runner"] = {
-                    callback = "strategies.chat.agents.tools.cmd_runner",
+                    callback = "interactions.chat.agents.tools.cmd_runner",
                     description = "Run shell commands initiated by the LLM",
                 },
                 ["editor"] = {
-                    callback = "strategies.chat.agents.tools.editor",
+                    callback = "interactions.chat.agents.tools.editor",
                     description = "Update a buffer with the LLM's response",
                 },
                 ["files"] = {
-                    callback = "strategies.chat.agents.tools.files",
+                    callback = "interactions.chat.agents.tools.files",
                     description = "Update the file system with the LLM's response",
                 },
                 ["weather"] = {
@@ -108,7 +108,7 @@ return {
             },
             variables = {
                 ["buffer"] = {
-                    callback = "strategies.chat.variables.buffer",
+                    callback = "interactions.chat.variables.buffer",
                     description = "Share the current buffer with the LLM",
                     opts = {
                         contains_code = true,
@@ -118,7 +118,7 @@ return {
             },
             slash_commands = {
                 ["file"] = {
-                    callback = "strategies.chat.slash_commands.file",
+                    callback = "interactions.chat.slash_commands.file",
                     description = "Insert a file",
                     opts = {
                         contains_code = true,
@@ -139,10 +139,10 @@ return {
     },
     prompt_library = {
         ["Demo"] = {
-            strategy = "chat",
+            interaction = "chat",
             description = "Demo prompt",
             opts = {
-                short_name = "demo",
+                alias = "demo",
             },
             prompts = {
                 {
@@ -167,13 +167,13 @@ return {
             },
         },
         ["Test References"] = {
-            strategy = "chat",
+            alias = "chat",
             description = "Add some references",
             opts = {
                 index = 1,
                 is_default = true,
                 is_slash_cmd = false,
-                short_name = "test_ref",
+                alias = "test_ref",
                 auto_submit = false,
             },
             references = {

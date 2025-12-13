@@ -60,7 +60,7 @@ end
 
 T["History module"]["should register keymap"] = function()
     local has_keymap = child.lua([[
-      local keymap = require("codecompanion.config").strategies.chat.keymaps["Saved Chats"]
+      local keymap = require("codecompanion.config").interactions.chat.keymaps["Saved Chats"]
       return keymap and keymap.modes.n == "gh"
     ]])
     eq(true, has_keymap)

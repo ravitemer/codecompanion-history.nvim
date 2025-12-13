@@ -436,7 +436,7 @@ end
 function UI:_handle_on_select(save_id)
     local codecompanion = require("codecompanion")
     log:trace("Selected chat: %s", save_id)
-    local chat_module = require("codecompanion.strategies.chat")
+    local chat_module = require("codecompanion.interactions.chat")
     local opened_chats = chat_module.buf_get_chat()
     local active_chat = codecompanion.last_chat()
 
@@ -580,7 +580,7 @@ function UI:create_chat(chat_data)
     ---@param adapter string
     ---@param settings table?
     local function _create_chat(adapter, settings)
-        local chat = require("codecompanion.strategies.chat").new({
+        local chat = require("codecompanion.interactions.chat").new({
             save_id = save_id,
             messages = messages,
             buffer_context = context,
@@ -665,7 +665,7 @@ function UI:create_chat(chat_data)
     return _create_chat(adapter, settings)
 end
 
----[[Most of the code is copied from codecompanion/strategies/chat/ui.lua]]
+---[[Most of the code is copied from codecompanion/interactions/chat/ui.lua]]
 ---Retrieve the lines to be displayed in the preview window
 ---@param chat_data CodeCompanion.History.ChatData
 function UI:_get_preview_lines(chat_data)
