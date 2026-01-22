@@ -226,8 +226,9 @@ function TitleGenerator:_make_adapter_request(chat, prompt, callback)
     local opts = self.opts.title_generation_opts or {}
     local adapter = vim.deepcopy(chat.adapter) --[[@as CodeCompanion.HTTPAdapter | CodeCompanion.ACPAdapter]]
     local settings = vim.deepcopy(chat.settings)
+    local adapters = require("codecompanion.adapters")
     if opts.adapter then
-        adapter = require("codecompanion.adapters").resolve(opts.adapter)
+        adapter = adapters.resolve(opts.adapter)
     end
     -- Early return for ACP adapters like gemini-cli or claude-code
     if adapter.type == "acp" then
@@ -254,7 +255,12 @@ function TitleGenerator:_make_adapter_request(chat, prompt, callback)
                 return callback(nil)
             end
             if data then
-                local result = _adapter.handlers.chat_output(_adapter, data)
+                local result = nil
+                if _adapter.handlers.chat_output then
+                    result = _adapter.handlers.chat_output(_adapter, data)
+                else
+                   result = adapters.call_handler(_adapter, "parse_chat", data)
+                end
                 if result and result.status then
                     if result.status == CONSTANTS.STATUS_SUCCESS then
                         local title = vim.trim(result.output.content or "")
