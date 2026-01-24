@@ -65,6 +65,7 @@ return {
                 command = { "node", "test-agent.js" },
                 roles = { user = "user", assistant = "assistant" },
             },
+            opts = {},
         },
     },
     interactions = {
@@ -129,6 +130,7 @@ return {
             },
             opts = {
                 blank_prompt = "",
+                completion_provider = "test_adapter",
             },
         },
 

@@ -259,7 +259,7 @@ function TitleGenerator:_make_adapter_request(chat, prompt, callback)
                 if _adapter.handlers.chat_output then
                     result = _adapter.handlers.chat_output(_adapter, data)
                 else
-                   result = adapters.call_handler(_adapter, "parse_chat", data)
+                    result = adapters.call_handler(_adapter, "parse_chat", data)
                 end
                 if result and result.status then
                     if result.status == CONSTANTS.STATUS_SUCCESS then
