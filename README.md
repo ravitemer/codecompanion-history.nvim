@@ -320,6 +320,79 @@ Each chat index entry (used in filtering) includes the following information:
 }
 ```
 
+#### 🗄️ Project-Aware Chat Saving
+
+You  may prefer your chats to be saved in a subdirectory of your current
+project. While there is no official feature for that specific use case, you
+can achieve such a result using the `extensions.history.opts.dir_to_save` key:
+
+```lua
+-- ...
+  dir_to_save = vim.fn.getcwd() .. "/.cc-history",
+-- ...
+```
+
+If you start neovim at the root of your project, this will use the project's
+`.cc-history` subdirectory as the chat history root and ensure that you will only
+get chats related to your project, and that save them as a part of your project
+(allowing you for example to version them and share them between your devices).
+
+You can even go further and make this configuration aware of the project's root
+so that whatever subdirectory of your project you start your nvimn's instance
+under, the memory always uses your project's root:
+
+```lua
+local function find_directory_with_parent_check(dir, check_func)
+  local parent_dir = dir
+  while parent_dir ~= "/" do
+    if check_func(parent_dir) then
+      return parent_dir
+    end
+    parent_dir = vim.fn.fnamemodify(parent_dir, ":h")
+  end
+  return nil
+end
+
+local function current_history_dir()
+  local current_dir = vim.fn.getcwd()
+  local project_root = false
+
+  -- First, look for ./cc-history directory
+  project_root = find_directory_with_parent_check(current_dir, function(parent_dir)
+    return vim.fn.isdirectory(parent_dir .. "/.cc-history") == 1
+  end)
+
+  -- If not found, fall back to .git directory
+  if not project_root then
+    project_root = find_directory_with_parent_check(current_dir, function(parent_dir)
+      return vim.fn.isdirectory(parent_dir .. "/.git") == 1
+    end)
+  end
+
+  -- If still not found, use current directory
+  if not project_root then
+    project_root = current_dir
+  end
+
+  return project_root .. "/.cc-history"
+end
+
+return {
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    -- ...
+    "ravitemer/codecompanion-history.nvim",
+  },
+  opts = {
+    -- ...
+          dir_to_save = current_history_dir(),
+    -- ...
+```
+
+This will search first for a pre-existing `.cc-history` directory, then for a
+` .git` directory and use them as project root for the `.cc-history`, or default to
+the current directory.
+
 #### 🔧 API
 
 The history extension exports the following functions that can be accessed via `require("codecompanion").extensions.history`:
