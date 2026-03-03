@@ -147,7 +147,7 @@ function Storage:_update_index_entry(chat_data)
         save_id = chat_data.save_id,
         title = chat_data.title,
         updated_at = chat_data.updated_at,
-        model = chat_data.settings and chat_data.settings.model or "unknown",
+        model = chat_data.model or (chat_data.settings and chat_data.settings.model) or "unknown",
         adapter = chat_data.adapter or "unknown",
         message_count = message_count,
         token_estimate = token_estimate,
@@ -210,6 +210,29 @@ function Storage:load_chat(id)
     end
 
     return result.data --[[@as CodeCompanion.History.ChatData]]
+end
+
+---Get the current model from the chat.
+---@param chat table
+---@return string
+local function get_model(chat)
+    -- http adapters
+    if chat.settings and chat.settings.model then
+        return chat.settings.model
+    end
+    -- acp adapters
+    if chat.acp_connection and chat.acp_connection._models then
+        return chat.acp_connection._models.currentModelId or "unknown"
+    end
+    -- fallback to default
+    if chat.adapter and chat.adapter.schema and chat.adapter.schema.model then
+        local default = chat.adapter.schema.model.default
+        if type(default) == "string" then
+            return default
+        end
+    end
+
+    return "unknown"
 end
 
 ---Validate chat object for required fields and structure
@@ -280,6 +303,7 @@ function Storage:save_chat(chat)
         messages = chat.messages or {},
         settings = chat.settings or {},
         adapter = chat.adapter and chat.adapter.name or "unknown",
+        model = get_model(chat),
         updated_at = os.time(),
         context_items = chat.context_items or {},
         schemas = (chat.tool_registry and chat.tool_registry.schemas) or {},

@@ -47,11 +47,11 @@ T = new_set({
     hooks = {
         pre_case = function()
             child.setup()
-            child.lua([[              
+            child.lua([[
               -- Setup logging first
               local log = require("codecompanion._extensions.history.log")
               log.setup_logging(false) -- Disable logging for tests
-              
+
               -- Create fresh storage instance with test dir
               local Storage = require("codecompanion._extensions.history.storage")
               test_storage = Storage.new({
@@ -61,7 +61,7 @@ T = new_set({
         end,
         post_case = function()
             -- Clean up test directory
-            child.lua([[              
+            child.lua([[
               if test_storage and test_storage.base_path then
                   local folder = test_storage.base_path
                   if vim.fn.isdirectory(folder) == 1 then
@@ -78,7 +78,7 @@ T = new_set({
 T["Storage Initialization"] = new_set()
 
 T["Storage Initialization"]["creates required directories"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local base_dir_exists = vim.fn.isdirectory(test_storage.base_path) == 1
         local chats_dir_exists = vim.fn.isdirectory(test_storage.chats_dir) == 1
 
@@ -99,7 +99,7 @@ T["Storage Initialization"]["creates required directories"] = function()
 end
 
 T["Storage Initialization"]["creates empty index file"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local Path = require("plenary.path")
         local path = Path:new(test_storage.index_path)
         local content = path:read()
@@ -110,7 +110,7 @@ T["Storage Initialization"]["creates empty index file"] = function()
 end
 
 T["Storage Initialization"]["provides storage location"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local location = test_storage:get_location()
         return {
             location = location,
@@ -125,19 +125,19 @@ end
 T["Save Operations"] = new_set()
 
 T["Save Operations"]["saves chat to file"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Create and save test chat
         local h = require("tests.helpers")
         local chat_data = h.create_test_chat("test_save_123")
         local save_result = test_storage:_save_chat_to_file(chat_data)
-        
+
         -- Check if file exists and content is correct
         local chat_path = test_storage.chats_dir .. "/test_save_123.json"
         local Path = require("plenary.path")
         local path = Path:new(chat_path)
         local file_exists = path:exists()
         local content = file_exists and path:read()
-        
+
         return {
             ok = save_result.ok,
             error = save_result.error,
@@ -155,15 +155,15 @@ T["Save Operations"]["saves chat to file"] = function()
 end
 
 T["Save Operations"]["updates index when saving chat"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Create and save test chat
         local h = require("tests.helpers")
         local chat_data = h.create_test_chat("test_index_123")
         local update_result = test_storage:_update_index_entry(chat_data)
-        
+
         -- Read index to verify
         local index = test_storage:get_chats()
-        
+
         return {
             ok = update_result.ok,
             error = update_result.error,
@@ -180,10 +180,10 @@ T["Save Operations"]["updates index when saving chat"] = function()
 end
 
 T["Save Operations"]["handles large chat data"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         local chat_data = h.create_test_chat("test_large")
-        
+
         -- Add large number of messages
         for i = 1, 1000 do
             table.insert(chat_data.messages, {
@@ -191,10 +191,10 @@ T["Save Operations"]["handles large chat data"] = function()
                 content = string.rep("test message " .. i .. " ", 100)
             })
         end
-        
+
         local save_result = test_storage:_save_chat_to_file(chat_data)
         local loaded_chat = test_storage:load_chat("test_large")
-        
+
         return {
             save_ok = save_result.ok,
             loaded_ok = loaded_chat ~= nil,
@@ -208,17 +208,17 @@ T["Save Operations"]["handles large chat data"] = function()
 end
 
 T["Save Operations"]["handles concurrent file access"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Simulate concurrent access by creating multiple saves rapidly
         local h = require("tests.helpers")
         local chat = h.create_test_chat("test_concurrent")
-        
+
         -- Create multiple saves in quick succession
         local results = {}
         for i = 1, 5 do
             local success = pcall(function()
                 test_storage:save_chat({
-                    opts = { 
+                    opts = {
                         save_id = chat.save_id,
                         title = chat.title .. "_" .. i
                     },
@@ -227,10 +227,10 @@ T["Save Operations"]["handles concurrent file access"] = function()
             end)
             table.insert(results, success)
         end
-        
+
         -- Verify final state
         local final_chat = test_storage:load_chat("test_concurrent")
-        
+
         return {
             all_attempts_succeeded = vim.tbl_contains(results, false) == false,
             chat_exists = final_chat ~= nil,
@@ -244,12 +244,12 @@ T["Save Operations"]["handles concurrent file access"] = function()
 end
 
 T["Save Operations"]["saves complete chat"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Create and save complete chat
         local h = require("tests.helpers")
         local chat_data = h.create_test_chat("test_complete_123")
-        test_storage:save_chat({ 
-            opts = { 
+        test_storage:save_chat({
+            opts = {
                 save_id = chat_data.save_id,
                 title = chat_data.title
             },
@@ -263,11 +263,11 @@ T["Save Operations"]["saves complete chat"] = function()
             },
             cycle = chat_data.cycle
         })
-        
+
         -- Load the chat back to verify
         local loaded_chat = test_storage:load_chat("test_complete_123")
         local index = test_storage:get_chats()
-        
+
         return {
             loaded_chat = loaded_chat,
             index_entry = index["test_complete_123"],
@@ -286,16 +286,16 @@ end
 T["Load Operations"] = new_set()
 
 T["Load Operations"]["loads chat by ID"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Create and save test chat
         local h = require("tests.helpers")
         local original_chat = h.create_test_chat("test_load_123")
         test_storage:_save_chat_to_file(original_chat)
         test_storage:_update_index_entry(original_chat)
-        
+
         -- Load the chat
         local loaded_chat = test_storage:load_chat("test_load_123")
-        
+
         return {
             loaded_chat = loaded_chat,
             original_title = original_chat.title,
@@ -312,7 +312,7 @@ T["Load Operations"]["loads chat by ID"] = function()
 end
 
 T["Load Operations"]["returns nil for non-existent chat"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to load non-existent chat
         local loaded_chat = test_storage:load_chat("does_not_exist")
         return { loaded_chat = loaded_chat }
@@ -322,7 +322,7 @@ T["Load Operations"]["returns nil for non-existent chat"] = function()
 end
 
 T["Load Operations"]["loads all chats from index"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         -- Create and save multiple test chats
         local chats = {
@@ -330,16 +330,16 @@ T["Load Operations"]["loads all chats from index"] = function()
             h.create_test_chat("test_all_2"),
             h.create_test_chat("test_all_3")
         }
-        
+
         -- Save all test chats
         for _, chat in ipairs(chats) do
             test_storage:_save_chat_to_file(chat)
             test_storage:_update_index_entry(chat)
         end
-        
+
         -- Get all chats
         local all_chats = test_storage:get_chats()
-        
+
         return {
             chat_count = vim.tbl_count(all_chats),
             has_chat1 = all_chats["test_all_1"] ~= nil,
@@ -364,24 +364,24 @@ end
 T["Delete Operations"] = new_set()
 
 T["Delete Operations"]["deletes chat and index entry"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         -- Create and save test chat
         local chat = h.create_test_chat("test_delete_123")
         test_storage:_save_chat_to_file(chat)
         test_storage:_update_index_entry(chat)
-        
+
         -- Verify chat exists
         local before_delete = test_storage:load_chat("test_delete_123") ~= nil
         local before_index = test_storage:get_chats()["test_delete_123"] ~= nil
-        
+
         -- Delete the chat
         local delete_result = test_storage:delete_chat("test_delete_123")
-        
+
         -- Check if chat is gone
         local after_delete = test_storage:load_chat("test_delete_123") ~= nil
         local after_index = test_storage:get_chats()["test_delete_123"] ~= nil
-        
+
         return {
             delete_success = delete_result,
             before_delete = before_delete,
@@ -399,7 +399,7 @@ T["Delete Operations"]["deletes chat and index entry"] = function()
 end
 
 T["Delete Operations"]["handles non-existent chat deletion gracefully"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to delete non-existent chat
         local delete_result = test_storage:delete_chat("does_not_exist")
         return { delete_success = delete_result }
@@ -410,7 +410,7 @@ T["Delete Operations"]["handles non-existent chat deletion gracefully"] = functi
 end
 
 T["Delete Operations"]["handles missing save_id in deletion"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to delete without an ID
         local delete_result = test_storage:delete_chat(nil)
         return { delete_success = delete_result }
@@ -423,28 +423,28 @@ end
 T["Last Chat"] = new_set()
 
 T["Last Chat"]["gets most recently updated chat"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
-        
+
         -- Create multiple chats with different timestamps
         local chat1 = h.create_test_chat("test_recent_1")
         chat1.updated_at = os.time() - 100 -- older
-        
+
         local chat2 = h.create_test_chat("test_recent_2")
         chat2.updated_at = os.time() - 10  -- newest
-        
+
         local chat3 = h.create_test_chat("test_recent_3")
         chat3.updated_at = os.time() - 50  -- in between
-        
+
         -- Save all chats
         for _, chat in ipairs({chat1, chat2, chat3}) do
             test_storage:_save_chat_to_file(chat)
             test_storage:_update_index_entry(chat)
         end
-        
+
         -- Get the most recent chat
         local last_chat = test_storage:get_last_chat()
-        
+
         return {
             last_chat_id = last_chat and last_chat.save_id,
             last_chat_title = last_chat and last_chat.title,
@@ -460,7 +460,7 @@ T["Last Chat"]["gets most recently updated chat"] = function()
 end
 
 T["Last Chat"]["handles empty storage"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Get the most recent chat from empty storage
         local last_chat = test_storage:get_last_chat()
         return { last_chat = last_chat }
@@ -473,16 +473,16 @@ end
 T["Error Handling"] = new_set()
 
 T["Error Handling"]["handles save_chat without chat parameter"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Mock codecompanion.last_chat() to return nil
         _G.codecompanion = { last_chat = function() return nil end }
-        
+
         -- Try to save without chat parameter
         test_storage:save_chat()
-        
+
         -- Check if any files were created
         local files = vim.fn.glob(test_storage.chats_dir .. "/*")
-        
+
         return {
             files_created = files ~= ""
         }
@@ -492,16 +492,16 @@ T["Error Handling"]["handles save_chat without chat parameter"] = function()
 end
 
 T["Error Handling"]["handles invalid chat structure"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to save invalid chat structure
         local invalid_chat = {
             opts = {} -- Missing save_id
         }
         test_storage:save_chat(invalid_chat)
-        
+
         -- Check if any files were created
         local files = vim.fn.glob(test_storage.chats_dir .. "/*")
-        
+
         return {
             files_created = files ~= ""
         }
@@ -511,16 +511,16 @@ T["Error Handling"]["handles invalid chat structure"] = function()
 end
 
 T["Error Handling"]["handles missing index file"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Delete index file
         vim.fn.delete(test_storage.index_path)
-        
+
         -- Try to get chats
         local chats = test_storage:get_chats()
-        
+
         -- Check if index was recreated
         local index_exists = vim.fn.filereadable(test_storage.index_path) == 1
-        
+
         return {
             chats = chats,
             index_exists = index_exists
@@ -532,15 +532,15 @@ T["Error Handling"]["handles missing index file"] = function()
 end
 
 T["Error Handling"]["handles corrupted JSON in index"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Write corrupt data to index
         local file = io.open(test_storage.index_path, "w")
         file:write("corrupted json{")
         file:close()
-        
+
         -- Try to get chats
         local chats = test_storage:get_chats()
-        
+
         return {
             chats = chats
         }
@@ -550,7 +550,7 @@ T["Error Handling"]["handles corrupted JSON in index"] = function()
 end
 
 T["Error Handling"]["validates nested message structure"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to save chat with invalid message structure
         test_storage:save_chat({
             opts = {
@@ -562,11 +562,11 @@ T["Error Handling"]["validates nested message structure"] = function()
                 "not a table"
             }
         })
-        
+
         -- Check if file was created
         local chat_path = test_storage.chats_dir .. "/test_invalid_msgs.json"
         local file_exists = vim.fn.filereadable(chat_path) == 1
-        
+
         return {
             file_exists = file_exists
         }
@@ -576,22 +576,22 @@ T["Error Handling"]["validates nested message structure"] = function()
 end
 
 T["Error Handling"]["handles permission errors"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         if vim.fn.has("win32") == 1 then
             return { skipped = true }
         end
-        
+
         -- Make directory read-only
         vim.fn.system("chmod 444 " .. test_storage.chats_dir)
-        
+
         -- Try to save a chat
         local h = require("tests.helpers")
         local chat = h.create_test_chat("test_perm")
         local save_result = test_storage:_save_chat_to_file(chat)
-        
+
         -- Restore permissions for cleanup
         vim.fn.system("chmod 755 " .. test_storage.chats_dir)
-        
+
         return {
             ok = save_result.ok,
             has_error = save_result.error ~= nil
@@ -606,7 +606,7 @@ T["Error Handling"]["handles permission errors"] = function()
 end
 
 T["Error Handling"]["handles invalid UTF-8 content"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Create chat with invalid UTF-8 sequence
         local invalid_utf8 = string.char(0xFF, 0xFF)
         test_storage:save_chat({
@@ -619,10 +619,10 @@ T["Error Handling"]["handles invalid UTF-8 content"] = function()
                 content = "Valid " .. invalid_utf8 .. " Invalid"
             }}
         })
-        
+
         -- Try to load it back
         local loaded_chat = test_storage:load_chat("test_utf8")
-        
+
         return {
             chat_saved = loaded_chat ~= nil,
             content_preserved = loaded_chat and loaded_chat.messages[1].content:find("Valid") ~= nil
@@ -637,17 +637,17 @@ end
 T["Duplicate Operations"] = new_set()
 
 T["Duplicate Operations"]["duplicates chat successfully"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         local original_chat = h.create_test_chat("test_original")
         test_storage:_save_chat_to_file(original_chat)
         test_storage:_update_index_entry(original_chat)
-        
+
         -- Duplicate the chat with custom title
         local new_save_id = test_storage:duplicate_chat("test_original", "Duplicated Chat")
         local duplicated_chat = test_storage:load_chat(new_save_id)
         local index = test_storage:get_chats()
-        
+
         return {
             new_save_id = new_save_id,
             duplicated_title = duplicated_chat and duplicated_chat.title,
@@ -669,17 +669,17 @@ T["Duplicate Operations"]["duplicates chat successfully"] = function()
 end
 
 T["Duplicate Operations"]["duplicates chat with auto-generated title"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         local original_chat = h.create_test_chat("test_auto_title")
         original_chat.title = "Original Title"
         test_storage:_save_chat_to_file(original_chat)
         test_storage:_update_index_entry(original_chat)
-        
+
         -- Duplicate without providing custom title
         local new_save_id = test_storage:duplicate_chat("test_auto_title")
         local duplicated_chat = test_storage:load_chat(new_save_id)
-        
+
         return {
             duplicated_title = duplicated_chat and duplicated_chat.title,
             has_copy_suffix = duplicated_chat and duplicated_chat.title:find("%(1%)") ~= nil
@@ -691,7 +691,7 @@ T["Duplicate Operations"]["duplicates chat with auto-generated title"] = functio
 end
 
 T["Duplicate Operations"]["handles non-existent chat duplication"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         -- Try to duplicate non-existent chat
         local new_save_id = test_storage:duplicate_chat("does_not_exist")
         return { new_save_id = new_save_id }
@@ -701,21 +701,21 @@ T["Duplicate Operations"]["handles non-existent chat duplication"] = function()
 end
 
 T["Duplicate Operations"]["preserves all chat data"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         local original_chat = h.create_test_chat("test_preserve")
         original_chat.refs = {{ id = "test_ref", content = "test content" }}
         original_chat.schemas = { test_schema = "schema_data" }
         original_chat.in_use = { test_tool = true }
         original_chat.cycle = 5
-        
+
         test_storage:_save_chat_to_file(original_chat)
         test_storage:_update_index_entry(original_chat)
-        
+
         -- Duplicate the chat
         local new_save_id = test_storage:duplicate_chat("test_preserve", "Preserved Data")
         local duplicated_chat = test_storage:load_chat(new_save_id)
-        
+
         return {
             refs_preserved = duplicated_chat and #duplicated_chat.refs == 1,
             schemas_preserved = duplicated_chat and duplicated_chat.schemas.test_schema == "schema_data",
@@ -733,17 +733,17 @@ T["Duplicate Operations"]["preserves all chat data"] = function()
 end
 
 T["Duplicate Operations"]["handles duplicate with untitled chat"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
         local original_chat = h.create_test_chat("test_untitled")
         original_chat.title = nil -- Remove title
         test_storage:_save_chat_to_file(original_chat)
         test_storage:_update_index_entry(original_chat)
-        
+
         -- Duplicate chat without title
         local new_save_id = test_storage:duplicate_chat("test_untitled")
         local duplicated_chat = test_storage:load_chat(new_save_id)
-        
+
         return {
             duplicated_title = duplicated_chat and duplicated_chat.title
         }
@@ -752,13 +752,193 @@ T["Duplicate Operations"]["handles duplicate with untitled chat"] = function()
     eq("Untitled (1)", result.duplicated_title)
 end
 
+-- Model Extraction Tests
+T["Model Extraction"] = new_set()
+
+T["Model Extraction"]["saves explicit model from HTTP adapter settings"] = function()
+    local result = child.lua([[
+        -- Use save_chat which calls get_model() to populate the model field
+        test_storage:save_chat({
+            opts = {
+                save_id = "test_http_model",
+                title = "HTTP Chat",
+            },
+            messages = {
+                { role = "user", content = "hello" },
+            },
+            settings = { model = "gpt-4o" },
+            adapter = { name = "openai" },
+            cycle = 1,
+        })
+
+        local loaded = test_storage:load_chat("test_http_model")
+        local index = test_storage:get_chats()
+
+        return {
+            chat_model = loaded.model,
+            index_model = index["test_http_model"].model,
+            settings_model = loaded.settings.model,
+        }
+    ]])
+
+    eq("gpt-4o", result.chat_model)
+    eq("gpt-4o", result.index_model)
+    eq("gpt-4o", result.settings_model)
+end
+
+T["Model Extraction"]["saves model from ACP connection"] = function()
+    local result = child.lua([[
+        -- Simulate an ACP adapter chat (no settings.model, but has acp_connection)
+        test_storage:save_chat({
+            opts = {
+                save_id = "test_acp_model",
+                title = "ACP Chat",
+            },
+            messages = {
+                { role = "user", content = "hello" },
+            },
+            settings = {},  -- ACP adapters have empty settings
+            adapter = { name = "claude-code" },
+            acp_connection = {
+                _models = { currentModelId = "claude-opus-4" },
+            },
+            cycle = 1,
+        })
+
+        local loaded = test_storage:load_chat("test_acp_model")
+        local index = test_storage:get_chats()
+
+        return {
+            chat_model = loaded.model,
+            index_model = index["test_acp_model"].model,
+        }
+    ]])
+
+    eq("claude-opus-4", result.chat_model)
+    eq("claude-opus-4", result.index_model)
+end
+
+T["Model Extraction"]["falls back to schema default when no settings or connection"] = function()
+    local result = child.lua([[
+        test_storage:save_chat({
+            opts = {
+                save_id = "test_schema_model",
+                title = "Schema Default Chat",
+            },
+            messages = {
+                { role = "user", content = "hello" },
+            },
+            settings = {},
+            adapter = {
+                name = "openai",
+                schema = { model = { default = "gpt-4o-mini" } },
+            },
+            cycle = 1,
+        })
+
+        local loaded = test_storage:load_chat("test_schema_model")
+        local index = test_storage:get_chats()
+
+        return {
+            chat_model = loaded.model,
+            index_model = index["test_schema_model"].model,
+        }
+    ]])
+
+    eq("gpt-4o-mini", result.chat_model)
+    eq("gpt-4o-mini", result.index_model)
+end
+
+T["Model Extraction"]["returns unknown when no model info available"] = function()
+    local result = child.lua([[
+        test_storage:save_chat({
+            opts = {
+                save_id = "test_no_model",
+                title = "No Model Chat",
+            },
+            messages = {
+                { role = "user", content = "hello" },
+            },
+            settings = {},
+            adapter = { name = "unknown_adapter" },
+            cycle = 1,
+        })
+
+        local loaded = test_storage:load_chat("test_no_model")
+        local index = test_storage:get_chats()
+
+        return {
+            chat_model = loaded.model,
+            index_model = index["test_no_model"].model,
+        }
+    ]])
+
+    eq("unknown", result.chat_model)
+    eq("unknown", result.index_model)
+end
+
+T["Model Extraction"]["backward compat: index uses settings.model for old chats without model field"] = function()
+    local result = child.lua([[
+        -- Simulate an old chat data format (no explicit model field)
+        local old_chat_data = {
+            save_id = "test_old_format",
+            title = "Old Format Chat",
+            messages = { { role = "user", content = "hello" } },
+            settings = { model = "claude-3-opus" },
+            adapter = "anthropic",
+            updated_at = os.time(),
+            cycle = 1,
+            cwd = vim.fn.getcwd(),
+            project_root = vim.fn.getcwd(),
+        }
+        -- model field intentionally absent (simulating old saved data)
+
+        -- Save directly to file and index (bypassing save_chat which would add model)
+        test_storage:_save_chat_to_file(old_chat_data)
+        test_storage:_update_index_entry(old_chat_data)
+
+        local index = test_storage:get_chats()
+
+        return {
+            index_model = index["test_old_format"].model,
+        }
+    ]])
+
+    -- Should fall back to settings.model
+    eq("claude-3-opus", result.index_model)
+end
+
+T["Model Extraction"]["model preserved through duplicate"] = function()
+    local result = child.lua([[
+        local h = require("tests.helpers")
+        local chat_data = h.create_test_chat("test_model_dup")
+        chat_data.model = "gpt-4o"
+        chat_data.settings = { model = "gpt-4o" }
+
+        test_storage:_save_chat_to_file(chat_data)
+        test_storage:_update_index_entry(chat_data)
+
+        local new_id = test_storage:duplicate_chat("test_model_dup", "Duplicated")
+        local duplicated = test_storage:load_chat(new_id)
+        local index = test_storage:get_chats()
+
+        return {
+            dup_model = duplicated.model,
+            dup_index_model = index[new_id].model,
+        }
+    ]])
+
+    eq("gpt-4o", result.dup_model)
+    eq("gpt-4o", result.dup_index_model)
+end
+
 -- Summary Storage Tests
 T["Summary Storage"] = new_set()
 
 T["Summary Storage"]["saves and loads summary successfully"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
-        
+
         -- Create test summary data
         local summary_data = {
             summary_id = "test_summary_123",
@@ -768,14 +948,14 @@ T["Summary Storage"]["saves and loads summary successfully"] = function()
             content = "# Test Summary\n\n## Overview\nThis is a test summary for validation.",
             project_root = "/test/project"
         }
-        
+
         -- Save the summary
         local save_result = test_storage:save_summary(summary_data)
-        
+
         -- Load it back
         local loaded_content = test_storage:load_summary("test_summary_123")
         local summaries_index = test_storage:get_summaries()
-        
+
         return {
             save_success = save_result,
             loaded_content = loaded_content,
@@ -795,14 +975,14 @@ T["Summary Storage"]["saves and loads summary successfully"] = function()
 end
 
 T["Summary Storage"]["handles multiple summaries and cache invalidation"] = function()
-    local result = child.lua([[              
+    local result = child.lua([[
         local h = require("tests.helpers")
-        
+
         -- Create multiple test summaries
         local summaries = {
             {
                 summary_id = "summary_001",
-                chat_id = "summary_001", 
+                chat_id = "summary_001",
                 chat_title = "First Summary Chat",
                 generated_at = os.time() - 100,
                 content = "# First Summary\n\nContent for first summary.",
@@ -811,7 +991,7 @@ T["Summary Storage"]["handles multiple summaries and cache invalidation"] = func
             {
                 summary_id = "summary_002",
                 chat_id = "summary_002",
-                chat_title = "Second Summary Chat", 
+                chat_title = "Second Summary Chat",
                 generated_at = os.time() - 50,
                 content = "# Second Summary\n\nContent for second summary.",
                 project_root = "/project2"
@@ -825,19 +1005,19 @@ T["Summary Storage"]["handles multiple summaries and cache invalidation"] = func
                 project_root = "/project1"
             }
         }
-        
+
         -- Save all summaries
         local save_results = {}
         for _, summary in ipairs(summaries) do
             table.insert(save_results, test_storage:save_summary(summary))
         end
-        
+
         -- Get summaries index (should be populated)
         local first_index = test_storage:get_summaries()
-        
+
         -- Test cache by getting index again (should use cache)
         local cached_index = test_storage:get_summaries()
-        
+
         -- Save another summary to test cache invalidation
         local new_summary = {
             summary_id = "summary_004",
@@ -848,15 +1028,15 @@ T["Summary Storage"]["handles multiple summaries and cache invalidation"] = func
             project_root = "/project3"
         }
         test_storage:save_summary(new_summary)
-        
+
         -- Get index again (cache should be invalidated)
         local updated_index = test_storage:get_summaries()
-        
+
         -- Load specific summaries
         local first_content = test_storage:load_summary("summary_001")
         local third_content = test_storage:load_summary("summary_003")
         local nonexistent_content = test_storage:load_summary("does_not_exist")
-        
+
         return {
             all_saves_successful = vim.tbl_contains(save_results, false) == false,
             first_index_count = vim.tbl_count(first_index),

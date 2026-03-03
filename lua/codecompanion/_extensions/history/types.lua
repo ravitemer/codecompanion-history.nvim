@@ -62,6 +62,7 @@
 ---@field updated_at number
 ---@field settings table
 ---@field adapter string
+---@field model? string
 ---@field refs? table -- Deprecated: for backward compatibility with old chats
 ---@field context_items? table -- New: replaces refs
 ---@field schemas? table

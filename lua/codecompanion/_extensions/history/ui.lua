@@ -607,6 +607,40 @@ function UI:create_chat(chat_data)
         chat.tool_registry.in_use = chat_data.in_use or {}
         chat.cycle = chat_data.cycle or 1
         chat.opts.title_refresh_count = chat_data.title_refresh_count or 0
+
+        if chat_data.model and chat_data.model ~= "unknown" and chat.adapter and chat.adapter.type == "acp" then
+            local retries = 0
+            local function try_restore_model()
+                if not chat.acp_connection or not chat.acp_connection:is_connected() then
+                    retries = retries + 1
+                    if retries < 50 then
+                        vim.defer_fn(try_restore_model, 100)
+                    end
+
+                    return
+                end
+                if chat.acp_connection._models and chat.acp_connection._models.currentModelId == chat_data.model then
+                    return
+                end
+
+                if chat.acp_connection.set_model and chat.acp_connection:set_model(chat_data.model) then
+                    log:trace("Restored ACP model: %s", chat_data.model)
+                    chat:update_metadata()
+                else
+                    log:warn("Model '%s' is not available, using default model", chat_data.model)
+                    vim.notify(
+                        string.format(
+                            "Model '%s' is not available in '%s' adapter, using default model.",
+                            chat_data.model,
+                            chat_data.adapter
+                        ),
+                        vim.log.levels.WARN
+                    )
+                end
+            end
+            vim.defer_fn(try_restore_model, 100)
+        end
+
         log:trace("Successfully created chat with save_id: %s", save_id or "N/A")
         return chat
     end
@@ -763,7 +797,13 @@ function UI:_get_preview_lines(chat_data)
     if chat_data.settings then
         lines = { "---" }
         table.insert(lines, string.format("adapter: %s", vim.inspect(chat_data.adapter)))
-        table.insert(lines, string.format("model: %s", vim.inspect(chat_data.settings.model)))
+        table.insert(
+            lines,
+            string.format(
+                "model: %s",
+                vim.inspect(chat_data.model or (chat_data.settings and chat_data.settings.model))
+            )
+        )
         -- Sort keys alphabetically
         local sorted_keys = {}
         for key in pairs(chat_data.settings) do
