@@ -71,6 +71,7 @@
 ---@field title_refresh_count? number
 ---@field cwd string Current working directory when chat was saved
 ---@field project_root string Project root directory when chat was saved
+---@field acp_session_id? string ACP session ID for restoring server-side state
 
 ---@class CodeCompanion.History.ChatIndexData
 ---@field title string

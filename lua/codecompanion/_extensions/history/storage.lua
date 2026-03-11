@@ -288,6 +288,7 @@ function Storage:save_chat(chat)
         title_refresh_count = chat.opts.title_refresh_count or 0,
         cwd = cwd,
         project_root = utils.find_project_root(cwd),
+        acp_session_id = chat.acp_connection and chat.acp_connection.session_id or nil,
     }
 
     -- Save chat to file

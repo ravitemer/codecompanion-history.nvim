@@ -587,10 +587,43 @@ function UI:create_chat(chat_data)
             settings = settings,
             adapter = adapter --[[@as CodeCompanion.Adapter]],
             title = title,
+            acp_session_id = chat_data.acp_session_id,
             --INFO: No need to ignore system prompt here, thanks to oli we don't add system messages with same tag (`from_config`) twice.
             -- This also fixes `gx` removing the system prompt from the chat if we pass `ignore_system_prompt = true`
             -- ignore_system_prompt = true,
         }) --[[@as CodeCompanion.History.Chat]]
+        if chat_data.acp_session_id then
+            log:trace("Restoring ACP session: %s", chat_data.acp_session_id)
+            local ACP = require("codecompanion.acp")
+            if chat.acp_connection then
+                chat.acp_connection:disconnect()
+            end
+            -- not directly available from the chat instance to pass the session id,
+            -- but if the connection has a session id we can restore
+            chat.acp_connection = ACP.new({
+                adapter = chat.adapter,
+                session_id = chat_data.acp_session_id,
+            })
+
+            local connected = chat.acp_connection:connect_and_initialize()
+            if connected and chat.acp_connection.session_id then
+                require("codecompanion.interactions.chat.acp.commands").link_buffer_to_session(
+                    chat.bufnr,
+                    chat.acp_connection.session_id
+                )
+                chat:update_metadata()
+            elseif
+                connected
+                and chat.acp_connection ~= nil
+                and chat.acp_connection.session_id ~= chat_data.acp_session_id
+            then
+                log:warn("ACP session not fully restored, session id mismatch.")
+            else
+                log:warn("Failed to restore ACP session, a new session will be created.")
+                chat.acp_connection = nil
+            end
+        end
+
         -- Handle both old (refs) and new (context_items) storage formats
         local stored_context_items = chat_data.context_items or chat_data.refs or {}
         local chat_context_items = chat.context_items or {}
@@ -607,7 +640,9 @@ function UI:create_chat(chat_data)
         chat.tool_registry.in_use = chat_data.in_use or {}
         chat.cycle = chat_data.cycle or 1
         chat.opts.title_refresh_count = chat_data.title_refresh_count or 0
+
         log:trace("Successfully created chat with save_id: %s", save_id or "N/A")
+
         return chat
     end
     local adapter = chat_data.adapter
