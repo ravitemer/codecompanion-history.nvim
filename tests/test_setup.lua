@@ -19,7 +19,7 @@ T = new_set({
                       auto_generate_title = true,
                       continue_last_chat = false,
                       delete_on_clearing_chat = false,
-                      picker = "default", -- Use default picker to avoid telescope dependency
+                      picker = "fzf-lua", -- Use fzf-lua picker
                       enable_logging = true,
                       dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history-test",
                     }

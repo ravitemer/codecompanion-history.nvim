@@ -14,7 +14,8 @@ test_file: deps
 
 docs: deps/panvimdoc
 	@echo Generating Docs...
-	@pandoc \
+	@cd deps/panvimdoc && \
+	pandoc \
 		--metadata="project:codecompanion-history" \
 		--metadata="vimversion:NVIM v0.8.0" \
 		--metadata="titledatepattern:%Y %B %d" \
@@ -25,11 +26,12 @@ docs: deps/panvimdoc
 		--metadata="ignorerawblocks:true" \
 		--metadata="docmapping:false" \
 		--metadata="docmappingproject:true" \
-		--lua-filter deps/panvimdoc/scripts/include-files.lua \
-		--lua-filter deps/panvimdoc/scripts/skip-blocks.lua \
-		-t deps/panvimdoc/scripts/panvimdoc.lua \
-		scripts/vimdoc.md \
-		-o doc/codecompanion-history.txt
+		--lua-filter scripts/include-files.lua \
+		--lua-filter scripts/skip-blocks.lua \
+		--lua-filter scripts/remove-emojis.lua \
+		-t scripts/panvimdoc.lua \
+		../../README.md \
+		-o ../../doc/codecompanion-history.txt
 
 deps: deps/plenary.nvim deps/codecompanion.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc
 	@echo Pulling...

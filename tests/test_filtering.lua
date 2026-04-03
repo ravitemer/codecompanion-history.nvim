@@ -24,7 +24,7 @@ T = new_set({
                                 auto_generate_title = false, -- Disable to avoid async issues in tests
                                 continue_last_chat = false,
                                 delete_on_clearing_chat = false,
-                                picker = "default",
+                                 picker = "fzf-lua",
                                 enable_logging = false,
                                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history-filter-test-" .. os.time(),
                             }
@@ -39,7 +39,7 @@ T = new_set({
                     auto_generate_title = false,
                     continue_last_chat = false,
                     delete_on_clearing_chat = false,
-                    picker = "default",
+                     picker = "fzf-lua",
                     enable_logging = false,
                     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history-filter-test-" .. os.time(),
                 })

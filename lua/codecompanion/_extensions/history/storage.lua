@@ -3,7 +3,6 @@
 ---@field index_path string Path to index file
 ---@field chats_dir string Path to chats directory
 ---@field expiration_days number Number of days after which chats are deleted
----@field summaries_cache table|nil Cache for summaries index
 local Storage = {}
 
 local log = require("codecompanion._extensions.history.log")
@@ -82,33 +81,14 @@ function Storage:_ensure_storage_dirs()
         chats_dir:mkdir({ parents = true })
     end
 
-    -- Create summaries directory
-    local summaries_dir = Path:new(self.base_path .. "/summaries")
-    if not summaries_dir:exists() then
-        log:trace("Creating summaries directory: %s", summaries_dir:absolute())
-        summaries_dir:mkdir({ parents = true })
-    end
-
     -- Initialize index file if it doesn't exist
     local index_path = Path:new(self.index_path)
     if not index_path:exists() then
         log:trace("Initializing empty index file: %s", self.index_path)
-        -- Initialize with empty object, not array, since we use it as a key-value store
         local empty_index = vim.empty_dict()
         local result = utils.write_json(self.index_path, empty_index)
         if not result.ok then
             log:error("Failed to initialize index file: %s", result.error)
-        end
-    end
-
-    -- Initialize summaries index file if it doesn't exist
-    local summaries_index_path = Path:new(self.base_path .. "/summaries_index.json")
-    if not summaries_index_path:exists() then
-        log:trace("Initializing empty summaries index file: %s", summaries_index_path:absolute())
-        local empty_index = vim.empty_dict()
-        local result = utils.write_json(summaries_index_path:absolute(), empty_index)
-        if not result.ok then
-            log:error("Failed to initialize summaries index file: %s", result.error)
         end
     end
 end
@@ -244,10 +224,6 @@ local function validate_chat_object(chat)
             if msg.role ~= nil and type(msg.role) ~= "string" then
                 return false, string.format("message %d role must be a string", i)
             end
-            --INFO: For anthropic adapter, tool call results may have non-string content
-            -- if msg.content ~= nil and type(msg.content) ~= "string" then
-            --     return false, string.format("message %d content must be a string", i)
-            -- end
         end
     end
     return true
@@ -285,7 +261,6 @@ function Storage:save_chat(chat)
         schemas = (chat.tool_registry and chat.tool_registry.schemas) or {},
         in_use = (chat.tool_registry and chat.tool_registry.in_use) or {},
         cycle = chat.cycle or 1,
-        title_refresh_count = chat.opts.title_refresh_count or 0,
         cwd = cwd,
         project_root = utils.find_project_root(cwd),
     }
@@ -348,35 +323,29 @@ end
 ---@return CodeCompanion.History.ChatData|nil
 function Storage:get_last_chat(filter_fn)
     log:debug("Getting most recent chat")
-    local index = self:get_chats(filter_fn)
-    if vim.tbl_isempty(index) then
-        return nil
-    end
+    local chats = self:get_chats(filter_fn)
 
-    -- Find the most recently updated chat
-    local most_recent = nil
-    local most_recent_time = 0
+    local last_chat = nil
+    local last_update_time = 0
 
-    for id, chat_meta in pairs(index) do
-        if chat_meta.updated_at and chat_meta.updated_at > most_recent_time then
-            most_recent = id
-            most_recent_time = chat_meta.updated_at
+    for _, chat_meta in pairs(chats) do
+        if chat_meta.updated_at and chat_meta.updated_at > last_update_time then
+            last_update_time = chat_meta.updated_at
+            last_chat = chat_meta
         end
     end
 
-    -- If we found a recent chat, load and return it
-    if most_recent then
-        log:trace("Found most recent chat: %s", most_recent)
-        return self:load_chat(most_recent)
+    if last_chat then
+        return self:load_chat(last_chat.save_id)
     end
 
     return nil
 end
 
----Rename a chat in storage
----@param save_id string The chat ID to rename
----@param new_title string The new title for the chat
----@return boolean success
+---Rename a chat
+---@param save_id string
+---@param new_title string
+---@return boolean
 function Storage:rename_chat(save_id, new_title)
     log:trace("Renaming chat %s to: %s", save_id, new_title)
     local index = self:get_chats()
@@ -411,130 +380,10 @@ function Storage:rename_chat(save_id, new_title)
     return true
 end
 
----Save a summary to storage
----@param summary_data CodeCompanion.History.SummaryData
----@return boolean success
-function Storage:save_summary(summary_data)
-    -- Save summary content to markdown file
-    local summary_path = vim.fs.joinpath(self.base_path, "summaries", summary_data.summary_id .. ".md")
-    local content_result = utils.write_file(summary_path, summary_data.content)
-    if not content_result.ok then
-        log:error("Failed to save summary content: %s", content_result.error)
-        return false
-    end
-
-    -- Update summaries index
-    local index_result = self:_update_summaries_index(summary_data)
-
-    -- Invalidate cache after saving
-    self:_invalidate_summaries_cache()
-
-    if index_result.ok then
-        summary_data.path = summary_path
-    end
-    return index_result.ok
-end
-
----Invalidate summaries cache
-function Storage:_invalidate_summaries_cache()
-    self.summaries_cache = nil
-end
-
----Update summaries index with summary data
----@param summary_data CodeCompanion.History.SummaryData
----@return {ok: boolean, error: string|nil}
-function Storage:_update_summaries_index(summary_data)
-    local summaries_index_path = self.base_path .. "/summaries_index.json"
-
-    -- Read current index
-    local index_result = utils.read_json(summaries_index_path)
-    local index = index_result.ok and index_result.data or {}
-
-    -- Update index entry
-    index[summary_data.summary_id] = {
-        summary_id = summary_data.summary_id,
-        chat_id = summary_data.chat_id,
-        chat_title = summary_data.chat_title, -- Add chat title
-        generated_at = summary_data.generated_at,
-        project_root = summary_data.project_root,
-    }
-
-    -- Write updated index
-    return utils.write_json(summaries_index_path, index)
-end
-
----Get all summaries from storage (index only)
----@return table<string, CodeCompanion.History.SummaryIndexData>
-function Storage:get_summaries()
-    if self.summaries_cache then
-        return self.summaries_cache
-    end
-
-    local summaries_index_path = self.base_path .. "/summaries_index.json"
-    local result = utils.read_json(summaries_index_path)
-    self.summaries_cache = result.ok and result.data or {}
-    return self.summaries_cache
-end
-
----Load a specific summary by ID
----@param summary_id string
----@return string|nil summary content
-function Storage:load_summary(summary_id)
-    local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
-    local result = utils.read_file(summary_path)
-    return result.ok and result.data or nil
-end
-
----Delete a summary from storage
----@param summary_id string
----@return boolean success
-function Storage:delete_summary(summary_id)
-    if not summary_id then
-        log:error("Cannot delete summary: missing id")
-        return false
-    end
-
-    log:debug("Deleting summary: %s", summary_id)
-
-    -- Delete the summary file
-    local summary_path = self.base_path .. "/summaries/" .. summary_id .. ".md"
-    local delete_result = utils.delete_file(summary_path)
-    if not delete_result.ok then
-        log:error("Failed to delete summary file: %s", delete_result.error)
-    end
-
-    -- Remove from summaries index
-    local summaries_index_path = self.base_path .. "/summaries_index.json"
-    local index_result = utils.read_json(summaries_index_path)
-    if not index_result.ok then
-        log:error("Failed to read summaries index for deletion: %s", index_result.error)
-        return false
-    end
-
-    -- Ensure we have a table to work with
-    local index = index_result.data or {}
-
-    -- Remove entry from index
-    index[summary_id] = nil
-
-    -- Save updated index
-    local write_result = utils.write_json(summaries_index_path, index)
-    if not write_result.ok then
-        log:error("Failed to update summaries index after deletion: %s", write_result.error)
-        return false
-    end
-
-    -- Invalidate cache after deletion
-    self:_invalidate_summaries_cache()
-
-    log:debug("Successfully deleted summary: %s", summary_id)
-    return true
-end
-
----Duplicate a chat in storage with a new title
----@param original_id string The original chat ID to duplicate
----@param new_title? string Optional new title (defaults to "Title (1)")
----@return string|nil new_save_id The new chat's save_id if successful
+---Duplicate a chat
+---@param original_id string
+---@param new_title? string
+---@return string|nil new_save_id
 function Storage:duplicate_chat(original_id, new_title)
     log:trace("Duplicating chat: %s", original_id)
 
@@ -559,7 +408,6 @@ function Storage:duplicate_chat(original_id, new_title)
     duplicated_chat.save_id = new_save_id
     duplicated_chat.title = new_title
     duplicated_chat.updated_at = os.time()
-    duplicated_chat.title_refresh_count = 0 -- Reset refresh count for new chat
 
     -- Save duplicated chat
     local save_result = self:_save_chat_to_file(duplicated_chat)

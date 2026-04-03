@@ -1,65 +1,51 @@
-*codecompanion-history.txt*      For NVIM v0.8.0     Last change: 2025 July 05
+*codecompanion-history.txt*   For NVIM v0.8.0   Last change: 2025 September 25
 
 ==============================================================================
 Table of Contents                    *codecompanion-history-table-of-contents*
 
-1. CodeCompanion History Extension|codecompanion-history-codecompanion-history-extension|
-  - ✨ Features|codecompanion-history-codecompanion-history-extension-✨-features|
-  - 📋 Requirements|codecompanion-history-codecompanion-history-extension-📋-requirements|
-  - 📦 Installation|codecompanion-history-codecompanion-history-extension-📦-installation|
-  - 🛠️ Usage|codecompanion-history-codecompanion-history-extension-🛠️-usage|
-  - The @memory tool|codecompanion-history-codecompanion-history-extension-the-@memory-tool|
-  - ⚙️ How It Works|codecompanion-history-codecompanion-history-extension-⚙️-how-it-works|
-  - 🔮 Future Roadmap|codecompanion-history-codecompanion-history-extension-🔮-future-roadmap|
-  - 🔌 Related Extensions|codecompanion-history-codecompanion-history-extension-🔌-related-extensions|
-  - 🙏 Acknowledgements|codecompanion-history-codecompanion-history-extension-🙏-acknowledgements|
-  - 📄 License|codecompanion-history-codecompanion-history-extension-📄-license|
-2. Links                                         |codecompanion-history-links|
+  - Features                                  |codecompanion-history-features|
+  - Requirements                          |codecompanion-history-requirements|
+  - Installation                          |codecompanion-history-installation|
+  - Usage                                        |codecompanion-history-usage|
+  - The @memory tool                  |codecompanion-history-the-@memory-tool|
+  - How It Works                          |codecompanion-history-how-it-works|
+  - Future Roadmap                      |codecompanion-history-future-roadmap|
+  - Related Extensions              |codecompanion-history-related-extensions|
+  - Acknowledgements                  |codecompanion-history-acknowledgements|
+  - License                                    |codecompanion-history-license|
 
-==============================================================================
-1. CodeCompanion History Extension*codecompanion-history-codecompanion-history-extension*
-
-<https://neovim.io> <https://www.lua.org>
-<https://github.com/ravitemer/codecompanion-history.nvim/actions>
-<https://opensource.org/licenses/MIT> <./CONTRIBUTING.md>
-
-A history management extension for codecompanion.nvim
-<https://codecompanion.olimorris.dev/> that enables saving, browsing and
-restoring chat sessions.
+FEATURES                                      *codecompanion-history-features*
 
 
-✨ FEATURES*codecompanion-history-codecompanion-history-extension-✨-features*
+CHAT MANAGEMENT ~
 
-
-🤖 CHAT MANAGEMENT ~
-
-- 💾 Flexible chat saving:
+- Flexible chat saving:
     - Automatic session saving (can be disabled)
     - Manual save with dedicated keymap
-- 🎯 Smart title generation for chats
-- 🔄 Continue from where you left
-- 📚 Browse saved chats with preview
-- 🔍 Multiple picker interfaces
-- ⌛ Optional automatic chat expiration
-- ⚡ Restore chat sessions with full context and tools state
-- 🏢 **Project-aware filtering**: Filter chats by workspace/project context
-- 📋 **Chat duplication**: Easily duplicate chats to create variations or backups
+- Smart title generation for chats
+- Continue from where you left
+- Browse saved chats with preview
+- Multiple picker interfaces
+- Optional automatic chat expiration
+- Restore chat sessions with full context and tools state
+- **Project-aware filtering**Filter chats by workspace/project context
+- **Chat duplication**Easily duplicate chats to create variations or backups
 
 
-📝 SUMMARY SYSTEM ~
+SUMMARY SYSTEM ~
 
-- **Manual summary generation**: Create summaries for any chat with `gcs`
-- **Intelligent content processing**: Extracts meaningful conversation content while filtering noise
-- **Chunked summarization**: Handles large conversations by splitting into manageable chunks
-- **Customizable generation**: Configure adapter, model, and system prompts
-- **Summary browsing**: Dedicated browser with `gbs` to explore all summaries
+- **Manual summary generation**Create summaries for any chat with `gcs`
+- **Intelligent content processing**Extracts meaningful conversation content while filtering noise
+- **Chunked summarization**Handles large conversations by splitting into manageable chunks
+- **Customizable generation**Configure adapter, model, and system prompts
+- **Summary browsing**Dedicated browser with `gbs` to explore all summaries
 
 
-🧠 MEMORY SYSTEM (@MEMORY TOOL) ~
+MEMORY SYSTEM (@MEMORY TOOL) ~
 
-- **Vector-based search**: Uses VectorCode CLI to index and search through chat summaries
-- **Automatic indexing**: Optionally index summaries as they are generated
-- **Smart integration**: Available as `@memory` tool in new chats when VectorCode is installed
+- **Vector-based search**Uses VectorCode CLI to index and search through chat summaries
+- **Automatic indexing**Optionally index summaries as they are generated
+- **Smart integration**Available as `@memory` tool in new chats when VectorCode is installed
 
 The following CodeCompanion features are preserved when saving and restoring
 chats:
@@ -67,38 +53,38 @@ chats:
   -----------------------------------------------------------------------
   Feature                    Status                  Notes
   -------------------------- ----------------------- --------------------
-  System Prompts             ✅                      System prompt used
-                                                     in the chat
+  System Prompts                                     Systemprompt used in
+                                                     the chat
 
-  Messages History           ✅                      All messages
+  Messages History                                   Allmessages
 
-  Images                     ✅                      Restores images as
+  Images                                             Restoresimages as
                                                      base64 strings
 
-  LLM Adapter                ✅                      The specific adapter
+  LLM Adapter                                        Thespecific adapter
                                                      used for the chat
 
-  LLM Settings               ✅                      Model, temperature
+  LLM Settings                                       Model,temperature
                                                      and other adapter
                                                      settings
 
-  Tools                      ✅                      Tool schemas and
+  Tools                                              Toolschemas and
                                                      their system prompts
 
-  Tool Outputs               ✅                      Tool execution
+  Tool Outputs                                       Toolexecution
                                                      results
 
-  Variables                  ✅                      Variables used in
-                                                     the chat
+  Variables                                          Variablesused in the
+                                                     chat
 
-  References                 ✅                      Code snippets and
+  References                                         Codesnippets and
                                                      command outputs
                                                      added via slash
                                                      commands
 
-  Pinned References          ✅                      Pinned references
+  Pinned References                                  Pinnedreferences
 
-  Watchers                   ⚠                       Saved but requires
+  Watchers                                           Savedbut requires
                                                      original buffer
                                                      context to resume
                                                      watching
@@ -108,8 +94,8 @@ tools and references are reinitialized 3. Original LLM settings and adapter are
 restored 4. Previous system prompts are preserved
 
 
-  **Note**: While watched buffer states are saved, they require the original
-  buffer context to resume watching functionality.
+  **Note**While watched buffer states are saved, they require the original buffer
+  context to resume watching functionality.
 
   [!NOTE] As this is an extension that deeply integrates with CodeCompanion’s
   internal APIs, occasional compatibility issues may arise when CodeCompanion
@@ -117,7 +103,7 @@ restored 4. Previous system prompts are preserved
   issue <https://github.com/ravitemer/codecompanion-history.nvim/issues> to help
   us maintain compatibility.
 
-📋 REQUIREMENTS*codecompanion-history-codecompanion-history-extension-📋-requirements*
+REQUIREMENTS                              *codecompanion-history-requirements*
 
 - Neovim >= 0.8.0
 - codecompanion.nvim <https://codecompanion.olimorris.dev/>
@@ -127,12 +113,12 @@ restored 4. Previous system prompts are preserved
 - fzf-lua <https://github.com/ibhagwan/fzf-lua> (optional, for enhanced picker)
 
 
-📦 INSTALLATION*codecompanion-history-codecompanion-history-extension-📦-installation*
+INSTALLATION                              *codecompanion-history-installation*
 
-Using lazy.nvim <https://github.com/folke/lazy.nvim>:
+Using lazy.nvim <https://github.com/folke/lazy.nvim>
 
 
-FIRST INSTALL THE PLUGIN ~
+FIRSTINSTALL THE PLUGIN ~
 
 >lua
     {
@@ -188,10 +174,13 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
                             return original_title
                         end
                     },
-    
+                    ---On exiting and entering neovim, loads the last chat on opening chat
                     continue_last_chat = false,
+                    ---When chat is cleared with `gx` delete the chat from history
                     delete_on_clearing_chat = false,
+                    ---Directory path to save the chats
                     dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
+                    ---Enable detailed logging for history extension
                     enable_logging = false,
     
                     -- Summary system
@@ -236,16 +225,20 @@ ADD HISTORY EXTENSION TO CODECOMPANION CONFIG ~
 <
 
 
-🛠️ USAGE*codecompanion-history-codecompanion-history-extension-🛠️-usage*
+  [!WARNING] Title and summary generation defaults to current chat’s adapter
+  and model. Make sure to set cheaper models in `title_generation_opts` and
+  `summary.generation_opts` to avoid using premium models.
+
+USAGE                                            *codecompanion-history-usage*
 
 
-🎯 COMMANDS
+COMMANDS
 
 - `:CodeCompanionHistory` - Open the history browser
 - `:CodeCompanionSummaries` - Browse all summaries
 
 
-⌨️ CHAT BUFFER KEYMAPS
+CHAT BUFFER KEYMAPS
 
 **History Management:** - `gh` - Open history browser (customizable via
 `opts.keymap`) - `sc` - Save current chat manually (customizable via
@@ -256,11 +249,11 @@ via `opts.summary.create_summary_keymap`) - `gbs` - Browse saved summaries
 (customizable via `opts.summary.browse_summaries_keymap`)
 
 
-📚 HISTORY BROWSER
+HISTORY BROWSER
 
 The history browser shows all your saved chats with: - Title (auto-generated or
-custom) - Summary indicator (📝 icon for chats with summaries) - Token
-estimates and relative timestamps - Preview of chat contents
+custom) - Summary indicator ( icon for chats with summaries) - Token estimates
+and relative timestamps - Preview of chat contents
 
 Actions in history browser: - `<CR>` - Open selected chat - Normal mode: - `d`
 - Delete selected chat(s) - `r` - Rename selected chat - `<C-y>` - Duplicate
@@ -268,7 +261,7 @@ selected chat - Insert mode: - `<M-d>` (Alt+d) - Delete selected chat(s) -
 `<M-r>` (Alt+r) - Rename selected chat - `<C-y>` - Duplicate selected chat
 
 
-📝 SUMMARY BROWSER
+SUMMARY BROWSER
 
 The summary browser shows all your generated summaries with: - Chat title (from
 original conversation) - Project context and relative timestamps - Preview of
@@ -279,7 +272,7 @@ Normal mode: - `d` - Delete selected summary(s) - Insert mode: - `<M-d>`
 (Alt+d) - Delete selected summary(s)
 
 
-THE @MEMORY TOOL*codecompanion-history-codecompanion-history-extension-the-@memory-tool*
+THE @MEMORY TOOL                      *codecompanion-history-the-@memory-tool*
 
 If you have installed the VectorCode <https://github.com/Davidyz/VectorCode>
 CLI, this plugin will use VectorCode to create an index for your chat summaries
@@ -307,12 +300,12 @@ Available options for the memory submodule:
 <
 
 
-🔄 TITLE REFRESH FEATURE
+TITLE REFRESH FEATURE
 
 The extension can automatically refresh chat titles as conversations evolve:
 
-- **refresh_every_n_prompts**: Set to refresh the title after every N user prompts (e.g., 3 means refresh after the 3rd, 6th, 9th user message)
-- **max_refreshes**: Limits how many times a title can be refreshed to avoid excessive API calls
+- **refresh_every_n_prompts**Set to refresh the title after every N user prompts (e.g., 3 means refresh after the 3rd, 6th, 9th user message)
+- **max_refreshes**Limits how many times a title can be refreshed to avoid excessive API calls
 - When refreshing, the system considers recent conversation context (both user and assistant messages) and the original title
 - Individual messages are truncated at 1000 characters with a `[truncated]` indicator
 - Total conversation context is limited to 10,000 characters with a `[conversation truncated]` indicator
@@ -327,7 +320,7 @@ Example configuration for title refresh:
 <
 
 
-🏢 PROJECT-AWARE CHAT FILTERING
+PROJECT-AWARE CHAT FILTERING
 
 The extension supports flexible chat filtering to help you focus on relevant
 conversations:
@@ -365,10 +358,10 @@ includes the following information:
 <
 
 
-🔧 API
+API
 
 The history extension exports the following functions that can be accessed via
-`require("codecompanion").extensions.history`:
+`require("codecompanion").extensions.history`
 
 >lua
     -- Chat Management
@@ -407,7 +400,7 @@ The history extension exports the following functions that can be accessed via
     load_summary(summary_id: string): string?        
 <
 
-Example usage:
+Exampleusage:
 
 >lua
     local history = require("codecompanion").extensions.history
@@ -427,58 +420,18 @@ Example usage:
     
     -- Duplicate a chat with auto-generated title (appends "(1)")
     local new_save_id = history.duplicate_chat("some_save_id")
+    
     -- Summary operations
     history.generate_summary() -- generates for current chat
+    
     local summaries = history.get_summaries()
+    
     local summary_content = history.load_summary("some_save_id")
-    history.preview_summary() -- opens summary for editing
+    
 <
 
 
-⚙️ HOW IT WORKS*codecompanion-history-codecompanion-history-extension-⚙️-how-it-works*
-
->mermaid
-    graph TD
-        subgraph CodeCompanion Core Lifecycle
-            A[CodeCompanionChatCreated Event] --> B{Chat Submitted};
-            B --> C[LLM Response Received];
-            subgraph Chat End
-                direction RL
-                D[CodeCompanionChatCleared Event];
-            end
-            C --> D;
-            B --> D;
-        end
-    
-        subgraph Extension Integration
-            A -- Extension Hooks --> E[Init & Subscribe];
-            E --> F[Setup Auto-Save];
-            F --> G[Prepare Auto-Title];
-    
-            C -- Extension Hooks --> H[Subscriber Triggered];
-            H --> H1{Auto-Save Enabled?};
-            H1 -- Yes --> I[Save Chat State - Messages, Tools, Refs];
-            H1 -- No --> H2[Manual Save via `sc`];
-            H2 --> I;
-            I --> J{No Title & Auto-Title Enabled?};
-            J -- Yes --> K[Generate Title];
-            K --> L[Update Buffer Title];
-            L --> M[Save Chat with New Title];
-            J -- No --> B;
-            M --> B;
-    
-            D -- Extension Hooks --> N[Respond to Clear Event];
-            N --> O[Delete Chat from Storage];
-            O --> P[Reset Extension State - Title/ID];
-        end
-    
-        subgraph User History Interaction
-            Q[User Action - gh / :CodeCompanionHistory] --> R{History Browser};
-            R -- Restore --> S[Load Chat State from Storage];
-            S --> A;
-            R -- Delete --> O;
-        end
-<
+HOW IT WORKS                              *codecompanion-history-how-it-works*
 
 Here’s what’s happening in simple terms:
 
@@ -509,28 +462,28 @@ Technical details ~
 The extension integrates with CodeCompanion through a robust event-driven
 architecture:
 
-1. **Initialization and Storage Management**:- Uses a dedicated Storage class to manage chat persistence in `{data_path}/codecompanion-history/`
+1. **Initialization and Storage Management**- Usesa dedicated Storage class to manage chat persistence in `{data_path}/codecompanion-history/`
 - Maintains an index.json for metadata and individual JSON files for each chat
 - Implements file I/O operations with error handling and atomic writes
 
 
-2. **Chat Lifecycle Integration**:- Hooks into `CodeCompanionChatCreated` event to:
+2. **Chat Lifecycle Integration**- Hooksinto `CodeCompanionChatCreated` event to:
     - Generate unique save_id (Unix timestamp)
     - Initialize chat subscribers for auto-saving
-    - Set initial buffer title with sparkle icon (✨)
+    - Set initial buffer title with sparkle icon ()
 - Monitors `CodeCompanionChatSubmitted` events to:
     - Persist complete chat state including messages, tools, schemas, and references
     - Trigger title generation if enabled and title is empty
     - Update buffer title with relative timestamps
 
 
-3. **Title Generation System**:- Uses the chat’s configured LLM adapter for title generation
+3. **Title Generation System**- Usesthe chat’s configured LLM adapter for title generation
 - Implements smart content truncation (1000 chars) and prompt engineering
 - Handles title collisions with automatic numbering
 - Updates titles asynchronously using vim.schedule
 
 
-4. **State Management**:- Preserves complete chat context including:
+4. **State Management**- Preservescomplete chat context including:
     - Message history with role-based organization
     - Tool states and schemas
     - Reference management
@@ -538,13 +491,13 @@ architecture:
     - Custom settings
 
 
-5. **UI Components**:- Implements multiple picker interfaces (telescope/snacks/default)
+5. **UI Components**- Implementsmultiple picker interfaces (telescope/snacks/default)
 - Provides real-time preview generation with markdown formatting
 - Supports justified text layout for buffer titles
 - Handles window/buffer lifecycle management
 
 
-6. **Data Flow**:- Chat data follows a structured schema (ChatData)
+6. **Data Flow**- Chatdata follows a structured schema (ChatData)
 - Implements proper serialization/deserialization
 - Maintains backward compatibility with existing chats
 - Provides error handling for corrupt or missing data
@@ -552,45 +505,35 @@ architecture:
 
 
 
-🔮 FUTURE ROADMAP*codecompanion-history-codecompanion-history-extension-🔮-future-roadmap*
+FUTURE ROADMAP                          *codecompanion-history-future-roadmap*
 
 
 UPCOMING FEATURES ~
 
-- ☐ Auto-summary generation options
-- ☐ Summary search and filtering
-- ☐ Integration with vector databases
+- Auto-summary generation options
+- Summary search and filtering
+- Integration with vector databases
 
 
-🔌 RELATED EXTENSIONS*codecompanion-history-codecompanion-history-extension-🔌-related-extensions*
+RELATED EXTENSIONS                  *codecompanion-history-related-extensions*
 
 - MCP Hub <https://codecompanion.olimorris.dev/extensions/mcphub.html> extension
 - VectorCode <https://codecompanion.olimorris.dev/extensions/vectorcode.html> extension
 
 
-🙏 ACKNOWLEDGEMENTS*codecompanion-history-codecompanion-history-extension-🙏-acknowledgements*
+ACKNOWLEDGEMENTS                      *codecompanion-history-acknowledgements*
 
 Special thanks to: - Oli Morris <https://github.com/olimorris> for creating the
 amazing CodeCompanion.nvim <https://codecompanion.olimorris.dev> plugin - a
 highly configurable and powerful coding assistant for Neovim. - David
 <https://github.com/Davidyz> for the awesome VectorCode
-<https://github.com/Davidyz/VectorCode> CLI and adding the @memory tool
+<https://github.com/Davidyz/VectorCode> CLI and adding the `@memory` tool
 integration.
 
 
-📄 LICENSE*codecompanion-history-codecompanion-history-extension-📄-license*
+LICENSE                                        *codecompanion-history-license*
 
 MIT
-
-==============================================================================
-2. Links                                         *codecompanion-history-links*
-
-1. *Neovim*: https:/img.shields.io/badge/Neovim-57A143?style=flat-square&logo=neovim&logoColor=white
-2. *Lua*: https:/img.shields.io/badge/Lua-2C2D72?style=flat-square&logo=lua&logoColor=white
-3. *Tests*: https:/github.com/ravitemer/codecompanion-history.nvim/actions/workflows/ci.yml/badge.svg
-4. *License: MIT*: https:/img.shields.io/badge/License-MIT-yellow.svg
-5. *PRs Welcome*: https:/img.shields.io/badge/PRs-welcome-brightgreen.svg
-6. *@memory*: 
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
