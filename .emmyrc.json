@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "hint": {
+    "enabled": false,
+    "enumParamHint": false,
+    "indexHint": false,
+    "localHint": false,
+    "metaCallHint": false,
+    "overrideHint": false,
+    "paramHint": false
+  },
+  "workspace": {
+    "enableReindex": false,
+    "encoding": "utf-8",
+    "ignoreDir": [],
+    "ignoreGlobs": [],
+    "library": [
+      "$VIMRUNTIME",
+      "$XDG_DATA_HOME/nvim/site/pack/core/opt/"
+    ],
+    "moduleMap": [],
+    "packageDirs": [],
+    "preloadFileSize": 0,
+    "reindexDuration": 5000,
+    "workspaceRoots": []
+  }
+}

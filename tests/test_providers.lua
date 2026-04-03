@@ -25,7 +25,7 @@ T["Picker Resolution"]["should auto-resolve to valid picker"] = function()
     local result = child.lua([[
         local pickers = require("codecompanion._extensions.history.pickers")
         local resolved = pickers.history
-        local valid_options = { "telescope", "fzf-lua", "snacks", "default" }
+        local valid_options = { "fzf-lua" }
         return {
             resolved_picker = resolved,
             is_valid = vim.tbl_contains(valid_options, resolved),
