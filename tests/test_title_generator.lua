@@ -464,6 +464,57 @@ T["Content Handling"]["filters out tagged user messages"] = function()
     eq(false, result.prompt:find("Referenced message to ignore") ~= nil) -- Should not include referenced message
 end
 
+T["Content Handling"]["filters out context messages with _meta.tag and context.id"] = function()
+    local result = child.lua([[
+        local title_sequence = {}
+        local completed = false
+
+        -- Replicate the message structure CodeCompanion creates with add_context()
+        -- _meta.tag and context.id are stripped from opts by add_message() and moved
+        -- to their own top-level fields.
+        local chat = {
+            opts = {},
+            messages = {
+                {
+                    role = "user",
+                    content = "This is CLAUDE.md rules content that should be ignored for title generation",
+                    _meta = { tag = "rules" },
+                    context = { id = "<rules>CLAUDE.md</rules>" },
+                    opts = { visible = false },
+                },
+                {
+                    role = "user",
+                    content = "Do you like basketball?"
+                }
+            }
+        }
+
+        test_title_gen:generate(chat, function(title)
+            table.insert(title_sequence, title)
+            if title ~= "Deciding title..." then
+                completed = true
+            end
+        end)
+
+        vim.wait(1000, function() return completed end)
+
+        local prompt = test_title_gen.last_prompt or ""
+        return {
+            first_title = title_sequence[1],
+            final_title = title_sequence[#title_sequence],
+            completed = completed,
+            has_context = prompt:find("CLAUDE.md rules content") ~= nil,
+            has_question = prompt:find("Do you like basketball") ~= nil,
+        }
+    ]])
+
+    eq("Deciding title...", result.first_title)
+    eq("Generated Title", result.final_title)
+    eq(true, result.completed)
+    eq(false, result.has_context) -- context message must be excluded
+    eq(true, result.has_question) -- actual question must be used
+end
+
 -- Error Handling Tests
 T["Error Handling"] = new_set()
 

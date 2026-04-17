@@ -103,6 +103,8 @@ function TitleGenerator:generate(chat, callback, is_refresh)
         local has_content = msg.content and vim.trim(msg.content) ~= ""
         local is_relevant_role = msg.role == config.constants.USER_ROLE or msg.role == config.constants.LLM_ROLE
         local not_tagged = not (msg.opts and (msg.opts.tag or msg.opts.reference or msg.opts.context_id))
+            and not (msg._meta and msg._meta.tag)
+            and not (msg.context and msg.context.id)
         return has_content and is_relevant_role and not_tagged
     end, chat.messages)
 
@@ -259,7 +261,7 @@ function TitleGenerator:_make_adapter_request(chat, prompt, callback)
                 if _adapter.handlers.chat_output then
                     result = _adapter.handlers.chat_output(_adapter, data)
                 else
-                   result = adapters.call_handler(_adapter, "parse_chat", data)
+                    result = adapters.call_handler(_adapter, "parse_chat", data)
                 end
                 if result and result.status then
                     if result.status == CONSTANTS.STATUS_SUCCESS then
